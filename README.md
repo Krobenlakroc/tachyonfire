@@ -11,4 +11,34 @@
 
 ## About
 
-Tachyon Fire is a cross-platform arena FPS engine (Windows/Linux) written in C, using SDL2 and OpenGL 4.6. It combines a modern clustered deferred rendering pipeline with arcade-style collision detection and player movement code.
+Tachyon Fire is a cross-platform arena FPS engine (Windows/Linux) written in C, using SDL2 and OpenGL 4.6. It combines a modern clustered deferred rendering pipeline with arcade-style collision detection and player movement code. The engine code is licensed under GPLv3, but the game's assets are properitary.  
+
+## Libraries
+* Misc Code from Exengine (https://github.com/solenum/exengine/)
+  - IQM based animation library (modified to support instancing and ragdolls)
+  - Trisoup Collision code (modified painstakingly for improved stability)
+* Freetype
+* Quake III's movement code (modified to support sliding)
+* Openalsoft
+* Spng
+* Miniz
+* Glad
+* SDL2
+
+## Features
+
+* Hybrid clustered deferred/forward rendering pipeline.
+* Pre-baked 2nd order spherical harmonic global illumination
+* Raytraced reflections using distance imposters (also pre-baked)
+* Continous trisoup collision detection
+* Skeletal Animation
+* Spline based enemy movement
+* Custom UI Framework
+* Multithreaded boids simulation using a spatial hash
+* Physically based rendering
+* Inverse Kinematics
+* Ragdoll physics
+* Deferred Decals
+* Sphere proxy ambient occlusion using tiled shading
+* Multithreaded SIMD frustum culling
+* Priority/distance based audio system
