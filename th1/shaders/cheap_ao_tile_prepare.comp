@@ -1,0 +1,213 @@
+
+#define texture2D texture
+
+#define GROUP_SIZE_x 16
+#define GROUP_SIZE_y 16
+
+// #define NUM_TILES_X 120
+//
+// #define NUM_TILED_DIV4 2040
+
+layout(local_size_x = GROUP_SIZE_x, local_size_y = GROUP_SIZE_y) in;
+
+layout(binding=2) uniform sampler2D depthTex;
+
+
+layout (std430 , binding = 2) restrict buffer TileData
+{
+    vec4 depth_boundsMin[NUM_TILED_DIV4];
+    vec4 depth_boundsMax[NUM_TILED_DIV4];
+    uvec4 cullMask[NUM_TILED_DIV4];
+    vec4 tileMinx[NUM_TILED_DIV4];
+    vec4 tileMaxx[NUM_TILED_DIV4];
+    vec4 tileMiny[NUM_TILED_DIV4];
+    vec4 tileMaxy[NUM_TILED_DIV4];
+    vec4 tileMinz[NUM_TILED_DIV4];
+    vec4 tileMaxz[NUM_TILED_DIV4];
+};
+
+
+
+uniform float zFar;
+uniform float zNear;
+uniform mat4 invProjection;
+uniform vec2 screen;
+
+vec3 lineIntersectionToZPlane(vec3 A, vec3 B, float zDistance){
+    //all clusters planes are aligned in the same z direction
+    vec3 normal = vec3(0.0, 0.0, 1.0);
+    //getting the line from the eye to the tile
+    vec3 ab =  (B - A);
+    //Computing the intersection length for the line and the plane
+    float t = (zDistance - dot(normal, A)) / dot(normal, ab);
+    //Computing the actual xyz position of the point along the line
+    vec3 result = (A + ( ab*t));
+    return result;
+}
+
+vec4 screen2Eye(vec4 coord,mat4 invProj)
+{
+
+    vec3 ndc = vec3(
+        2.0 * (coord.x / screen.x)  - 1.0,
+                                2.0 * ( (coord.y/ screen.y) )  - 1.0,
+                                2.0 * coord.z - 1.0 // -> [-1, 1]
+    );
+
+    vec4 eye = (invProj * vec4(ndc.x,ndc.y,ndc.z, 1.0));
+    eye = eye*(1.0/eye.w);
+
+    return eye;
+
+}
+
+void clusterAABB(float i,float j,float clusterNear,float clusterFar,mat4 invProj,vec3 eyePos,out vec3 minBounds,out vec3 maxBounds)
+{
+
+    float xslicesize = 16.0;
+    float yslicesize = 16.0;
+
+    vec4 minScreen = vec4( i*xslicesize,j*yslicesize, 1.0, 1.0);
+    vec4 maxScreen = vec4((i+1)*xslicesize,(j+1)*yslicesize, 1.0, 1.0);
+
+
+
+    // calculate near and far depth edges of the cluster
+    // float clusterNear = -Nearz * powf(Farz / Nearz,  k      / (numSlices));
+    // float clusterFar  = -Nearz * powf(Farz / Nearz, (k + 1) / (numSlices));
+    // printf("%f\n",clusterFar - clusterNear );
+
+    vec3 minEye = (screen2Eye(minScreen,invProj).xyz*-1);
+    vec3 maxEye = (screen2Eye(maxScreen,invProj).xyz*-1);
+
+    // this calculates the intersection between:
+    // - a line from the camera (origin) to the eye point (at the camera's far plane)
+    // - the cluster's z-planes (near + far)
+    // we could divide by u_zFar as well
+    vec3 minNear = (lineIntersectionToZPlane(eyePos,minEye,-clusterNear));//fn_transformVec3(fn_multVec3s(minEye , clusterNear / minEye.z),invView);
+    vec3 minFar  = (lineIntersectionToZPlane(eyePos,minEye,-clusterFar));//fn_transformVec3(fn_multVec3s(minEye , clusterFar  / minEye.z),invView);
+    vec3 maxNear = (lineIntersectionToZPlane(eyePos,maxEye,-clusterNear));//fn_transformVec3(fn_multVec3s(maxEye , clusterNear / maxEye.z),invView);
+    vec3 maxFar  = (lineIntersectionToZPlane(eyePos,maxEye,-clusterFar));//fn_transformVec3(fn_multVec3s(maxEye , clusterFar  / maxEye.z),invView);
+
+    // get extent of the cluster in all dimensions (axis-aligned bounding box)
+    // there is some overlap here but it's easier to calculate intersections with AABB
+     minBounds = min(min(minNear, minFar), min(maxNear, maxFar));
+     maxBounds = max(max(minNear, minFar), max(maxNear, maxFar));
+
+}
+
+float screen2EyeDepth(float depth, float near, float far)
+{
+
+    float ndc = 2.0 * depth - 1.0;
+    float eye = 2.0 * far * near / (far + near + ndc * (near - far));
+    return eye;
+}
+
+/*
+ *  populate TileData
+ */
+
+shared float sMin[256];
+shared float sMax[256];
+
+shared uint tileDepthMask ;
+
+
+void main()
+{
+    uvec2 pixel_id = gl_GlobalInvocationID.xy;
+    uint tile_x = pixel_id.x/GROUP_SIZE_x;
+    uint tile_y = pixel_id.y/GROUP_SIZE_y;
+
+
+    uint tile_id = tile_x + tile_y*NUM_TILES_X;
+
+//     uint tile_id = gl_WorkGroupID.x + gl_WorkGroupID.y*gl_NumWorkGroups.x;
+//     uint idx = pixel_id.x + pixel_id.y*gl_NumWorkGroups.x*gl_WorkGroupSize.x ;
+//     if (idx < NUM_UINTS_DIV4)
+//     {
+//         light_list_arr[idx] = uvec4(0,0,0,0);
+//     }
+//
+//     barrier();
+
+    uvec2 texSize = textureSize(depthTex, 0);
+
+    // --- 1. Each thread samples its texel ---
+    float depth = 1.0; // Default to far plane (treat OOB as no geometry)
+    if (pixel_id.x < texSize.x && pixel_id.y < texSize.y) {
+        depth = texelFetch(depthTex, ivec2(pixel_id), 0).r;
+    }
+
+    depth = screen2EyeDepth(depth,zNear,zFar);
+    // Initialize shared memory
+    sMin[gl_LocalInvocationIndex] = depth;
+    sMax[gl_LocalInvocationIndex] = depth;
+
+    barrier();
+
+    for (uint stride = 128; stride > 0; stride >>= 1)
+    {
+        if (gl_LocalInvocationIndex < stride)
+        {
+            sMin[gl_LocalInvocationIndex] = min(sMin[gl_LocalInvocationIndex], sMin[gl_LocalInvocationIndex + stride]);
+            sMax[gl_LocalInvocationIndex] = max(sMax[gl_LocalInvocationIndex], sMax[gl_LocalInvocationIndex + stride]);
+
+        }
+
+        barrier();
+    }
+
+    // Now idx 0 has the result
+    if (gl_LocalInvocationIndex == 0)
+    {
+        float minDepth = sMin[0];
+        float maxDepth = sMax[0];
+
+        depth_boundsMin[tile_id/4][tile_id%4]  = minDepth;
+        depth_boundsMax[tile_id/4][tile_id%4] = maxDepth;
+
+        tileDepthMask = 0;
+    }
+
+    barrier();
+
+    float wgMin = sMin[0];
+    float wgMax = sMax[0];
+    barrier(); // ensure reads of sharedMinDepth[0] happen before we reuse shared memory
+
+
+    if (wgMax > wgMin) {  // guard against degenerate tiles (skybox, etc.)
+        float depthRangeRecip = 32.0f / (wgMax - wgMin);
+
+        uint depthmaskcellindex = uint(max(0, min(31, floor((depth - wgMin) * depthRangeRecip))));
+
+        atomicOr(tileDepthMask, 1 << depthmaskcellindex);
+    }
+    barrier();
+
+    if (gl_LocalInvocationIndex == 0) {
+        cullMask[tile_id/4][tile_id%4] = tileDepthMask;
+    }
+
+
+    if (gl_LocalInvocationIndex ==0 )
+    {
+        vec3 aabbMin,aabbMax;
+        clusterAABB(float(tile_x),float(tile_y),wgMin,wgMax,invProjection,vec3(0,0,0),aabbMin,aabbMax);
+
+        tileMinx[tile_id/4][tile_id%4] = aabbMin.x;
+        tileMiny[tile_id/4][tile_id%4] = aabbMin.y;
+        tileMinz[tile_id/4][tile_id%4] = aabbMin.z;
+
+
+        tileMaxx[tile_id/4][tile_id%4] = aabbMax.x;
+        tileMaxy[tile_id/4][tile_id%4] = aabbMax.y;
+        tileMaxz[tile_id/4][tile_id%4] = aabbMax.z;
+    }
+
+
+
+
+}

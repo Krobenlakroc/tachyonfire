@@ -1,0 +1,12 @@
+#/usr/bin/env bash
+
+podman build -t builder .
+
+# create a container
+cid=$(podman create builder)
+
+# copy files from the container to host
+podman cp $cid:/tachyon/bin/ ./tachyonbin
+
+# remove the temporary container
+podman rm $cid

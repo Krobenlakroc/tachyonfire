@@ -1,0 +1,73 @@
+#version 450 core
+layout(vertices = 3) out;
+in vec3 vPosition[];
+in vec2 vTexCoord[];
+in vec3 vNormal[];
+in vec3 vTangent[];
+in vec3 vBiTangent[];
+in mat4 vTransform[];
+in vec2 vID[];
+
+out vec3 tcPosition[];
+out vec2 tcTexCoord[];
+out vec3 tcNormal[];
+out vec3 tcTangent[];
+out vec3 tcBiTangent[];
+out mat4 tcTransform[];
+out vec2 tcID[];
+
+
+#define ID gl_InvocationID
+uniform mat4 modelViewprojection;
+uniform vec2 height_and_fov;
+float edgesperscreen = height_and_fov.x/50;
+float computetess(vec3 midpoint,float diameter)
+{
+ vec4 clipspace = modelViewprojection*vec4(midpoint,1.0);
+ float delta = (diameter*height_and_fov.y)/clipspace.w;
+ return delta*edgesperscreen;
+}
+
+
+void main()
+{
+  tcPosition[ID] = vPosition[ID];
+  tcTexCoord[ID] = vTexCoord[ID];
+  tcNormal[ID] = vNormal[ID];
+  tcTangent[ID] = vTangent[ID];
+  tcBiTangent[ID] = vBiTangent[ID];
+  tcTransform[ID] = vTransform[ID];
+  tcID[ID] = vID[ID];
+
+   const float MODIFIER =1;
+
+    float fDistance;
+    vec3 f3MidPoint;
+    // Edge 0
+
+
+    //if (ID == 0) {
+
+      vec3 p0 = (vTransform[0]*vec4(vPosition[0],1.0)).xyz;
+      vec3 p1 = (vTransform[0]*vec4(vPosition[1],1.0)).xyz;
+      vec3 p2 = (vTransform[0]*vec4(vPosition[2],1.0)).xyz;
+
+        f3MidPoint = ( p2 + p0 ) / 2.0f;
+
+        //clamp((1 - (fDistance - 0.1)/(1000 - 0.1))*MODIFIER*5 + 1,1,6);
+        gl_TessLevelOuter[1] = (clamp((MODIFIER*computetess(f3MidPoint,distance(p0,p2))),1,64));
+        // Edge 1
+        f3MidPoint = ( p0 + p1 ) / 2.0f;
+
+
+        gl_TessLevelOuter[2] = (clamp((MODIFIER*computetess(f3MidPoint,distance(p0,p1))),1,64));
+        // Edge 2
+        f3MidPoint = ( p1 + p2 ) / 2.0f;
+
+
+        gl_TessLevelOuter[0] = (clamp((MODIFIER*computetess(f3MidPoint,distance(p1,p2))),1,64));
+        // Inside
+        gl_TessLevelInner[0] = (gl_TessLevelOuter[0] +gl_TessLevelOuter[1]+ gl_TessLevelOuter[2]) / 3.0f;
+
+    //}
+}

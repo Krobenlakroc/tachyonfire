@@ -1,0 +1,84 @@
+#version 450 core
+layout(triangles, fractional_even_spacing, ccw) in;
+in vec3 tcPosition[];
+in vec2 tcTexCoord[];
+in vec3 tcNormal[];
+in vec3 tcTangent[];
+in vec3 tcBiTangent[];
+in mat4 tcTransform[];
+in vec2 tcID[];
+
+out vec2 outTexcoord;
+// out vec3 outPosition;
+// out mat3 TBN;
+out vec2 ID;
+// out vec3 surfNorm;
+out vec3 T;
+out vec3 N;
+out float dynamic_flag;
+uniform mat4 modelViewprojection;
+
+
+const float heightScale = 20;
+layout(binding=6) uniform sampler2DArray materials[3];
+
+vec3 goffset =vec3(-23,-75,196);
+vec3 gridsize = vec3(43,23,53);
+float griddist = 12;
+
+vec3 quantify(vec3 position)
+{
+  return floor((position - goffset)/griddist  + 0.5*gridsize) - vec3(1,1,1);
+}
+
+float when_gt(float x, float y) {
+  return max(sign(x - y), 0.0);
+}
+
+float when_lt(float x, float y) {
+  return max(sign(y - x), 0.0);
+}
+
+void main()
+{
+    // vec3 p0 = gl_TessCoord.x * tcPosition[0];
+    // vec3 p1 = gl_TessCoord.y * tcPosition[1];
+    // vec3 p2 = gl_TessCoord.z * tcPosition[2];
+    vec3 p_interp = (gl_TessCoord.x*tcPosition[0] + gl_TessCoord.y*tcPosition[1] + gl_TessCoord.z*tcPosition[2]);
+    vec2 t_interp = (gl_TessCoord.x*tcTexCoord[0] + gl_TessCoord.y*tcTexCoord[1] + gl_TessCoord.z*tcTexCoord[2]);
+    vec3 n_interp = (gl_TessCoord.x*tcNormal[0] + gl_TessCoord.y*tcNormal[1] + gl_TessCoord.z*tcNormal[2]);
+    vec3 ta_interp = (gl_TessCoord.x*tcTangent[0] + gl_TessCoord.y*tcTangent[1] + gl_TessCoord.z*tcTangent[2]);
+    vec3 bt_interp = (gl_TessCoord.x*tcBiTangent[0] + gl_TessCoord.y*tcBiTangent[1] + gl_TessCoord.z*tcBiTangent[2]);
+    mat4 tr_interp = (gl_TessCoord.x*tcTransform[0] + gl_TessCoord.y*tcTransform[1] + gl_TessCoord.z*tcTransform[2]);
+    vec2 id_interp = (gl_TessCoord.x*tcID[0] + gl_TessCoord.y*tcID[1] + gl_TessCoord.z*tcID[2]);
+    // tePatchDistance = gl_TessCoord;
+    // tePosition = normalize(p0 + p1 + p2);
+    // gl_Position = Projection * Modelview * vec4(tePosition, 1);
+      ID = id_interp;
+
+      T = normalize(vec3(tr_interp * vec4(ta_interp,   0.0)));
+    //  vec3 B = normalize(vec3(tr_interp * vec4(bt_interp, 0.0)));
+      N = normalize(vec3(tr_interp * vec4(n_interp,    0.0)));
+     //  surfNorm = N;
+     // TBN = mat3(T, B, N);
+
+      vec2 htc0 = vec2(t_interp.x,1-t_interp.y);
+    //performance problem
+    float height = textureLod(materials[0],vec3(htc0,(id_interp.y + 2)),0).r;
+
+
+    vec4 p = tr_interp*vec4(p_interp.xyz ,1.0);
+    p.xyz += heightScale*(height-1)*normalize((vec4(N,0.0)).xyz);
+
+    gl_Position = (modelViewprojection*p);
+    outTexcoord = vec2(t_interp.x,1 - t_interp.y);
+    // outPosition= p.xyz;
+
+
+
+   // TBN = mat3(T, B, N);
+   vec3 q = quantify(p.xyz);
+//  gl_CullDistance[0] = -min(when_lt(q.x,0)+when_gt(q.x,gridsize.x)+when_lt(q.y,0)+when_gt(q.y,gridsize.y) + when_lt(q.z,0)+when_gt(q.z,gridsize.z),1.0);
+  dynamic_flag = 0;
+
+}
