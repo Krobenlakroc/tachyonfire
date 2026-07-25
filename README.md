@@ -46,6 +46,8 @@ Tachyon Fire is a cross-platform arena FPS engine (Windows/Linux) written in C, 
 * Physically based raymarched fog
 
   <img width="1920" height="1080" alt="screen4" src="https://github.com/user-attachments/assets/30626aaa-72be-4518-9479-eb276659fd50" />
+  
+  <img width="1920" height="1080" alt="tfscreen2" src="https://github.com/user-attachments/assets/3384e23f-f451-4101-8f76-2963da6c6974" />
 
 
 ## Building
@@ -67,6 +69,8 @@ The raytraced reflection solution uses distance imposters (cubemaps with depth i
 Nvidia has a great [article](https://developer.nvidia.com/blog/the-peak-performance-analysis-method-for-optimizing-any-gpu-workload/#appendix2) on optimizing raymarching loops. 
 
 I used a variable timestep instead of a fixed one for simplicity. Consequently, some jumps will only work at certain framerates.
+
+I don't like antialiasing, bloom, or SSAO so I didn't implement any of those features.
 
 ## AI Use
 
