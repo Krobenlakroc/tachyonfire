@@ -63,6 +63,8 @@ No other 3D software (to my knowledge) uses this convention so everything import
 
 The raytraced reflection solution uses distance imposters (cubemaps with depth information) as the world representation. This works really well for reflecting rooms that can be represented as piecewise combinations of distance functions taken at different points, but will require a lot of memory for scenes with more complex geometry that blocks a lot of the scene. Hallways, corridors or large outdoor areas make placing the cubemaps relatively simple (just place them in areas where they can "see" a lot of the scene), but a level like a dense forest would be almost impossible with all the nooks and crannies. 
 
+Nvidia has a great [article](https://developer.nvidia.com/blog/the-peak-performance-analysis-method-for-optimizing-any-gpu-workload/#appendix2) on optimizing raymarching loops. 
+
 I used a variable timestep instead of a fixed one for simplicity. Consequently, some jumps will only work at certain framerates.
 
 ## AI Use
