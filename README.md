@@ -43,6 +43,7 @@ Tachyon Fire is a cross-platform arena FPS engine (Windows/Linux) written in C, 
 * Sphere proxy ambient occlusion using tiled shading
 * Multithreaded SIMD frustum culling
 * Priority/distance based audio system
+* Physically based raymarched fog
 
   <img width="1920" height="1080" alt="screen4" src="https://github.com/user-attachments/assets/30626aaa-72be-4518-9479-eb276659fd50" />
 
@@ -81,9 +82,9 @@ The portions of the engine I did prior to 2024 (https://www.youtube.com/watch?v=
 If you are like me and are skeptical of projects that seem "vibe coded" out of nowhere by someone with no appreciation for software quality, I promise you this is not the case. The code is pretty messy and lacks standardization/extensibility but its systems were loosely coupled enough to make something that works.
 
 
-## Reach Out!
+## Contact
 
-If you want to ask more questions about how I did this, or are struggling with a problem related to making a redistributable build, I will answer your email.
+If you want to ask more questions about how I did this, or are struggling with a problem related to making a redistributable build of your software, I will answer your email.
 If you are offering me a job, say so in the subject line.
 
 
