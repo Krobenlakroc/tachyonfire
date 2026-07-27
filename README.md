@@ -14,7 +14,7 @@
 Tachyon Fire is a cross-platform arena FPS engine (Windows/Linux) written in C, using SDL2 and OpenGL 4.6. It combines a modern clustered deferred rendering pipeline with arcade-style collision detection and player movement code. The engine code is licensed under GPLv3, but the game's assets are proprietary.  
 
 ## Libraries
-* Join position solver from Comet IK (https://github.com/TheComet/ik)
+* Joint position solver from Comet IK (https://github.com/TheComet/ik)
 * Misc Code from Exengine (https://github.com/solenum/exengine/)
   - IQM based animation library (modified to support instancing and ragdolls)
   - Trisoup Collision code (modified painstakingly for improved stability)
