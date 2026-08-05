@@ -2,7 +2,7 @@
 #include <string.h>
 #include "../miniz.h"
 
-
+#include "../fn_input.h"
 #include <sys/stat.h>
 #include <stdio.h>
 #include <time.h>
@@ -413,4 +413,46 @@ char* th_getPathSettings()
 char* th_getPathVictory()
 {
   return victory_path_global;
+}
+
+const char* th_getKeyName(SDL_Scancode sc)
+{
+  if ((int)sc >= TH_SCANCODE_CUSTOM)
+  {
+
+    static const char *mouse_button_names[] = {
+      "MOUSE L", "MOUSE3", "MOUSE R", "MOUSE4", "MOUSE5", "MOUSE6", "MOUSE7", "MOUSE8", "MOUSE9", "MOUSE10",
+      "MOUSE11", "MOUSE12", "MOUSE13", "MOUSE14", "MOUSE15", "MOUSE16", "MOUSE17", "MOUSE18", "MOUSE19", "MOUSE20",
+      "MOUSE21", "MOUSE22", "MOUSE23", "MOUSE24", "MOUSE25", "MOUSE26", "MOUSE27", "MOUSE28", "MOUSE29", "MOUSE30",
+      "MOUSE31", "MOUSE32"
+    };
+
+    #define MOUSE_BUTTON_COUNT (sizeof(mouse_button_names) / sizeof(mouse_button_names[0]))
+
+    if (sc >= TH_SCANCODE_MOUSE(0) && sc < TH_SCANCODE_MOUSE(MOUSE_BUTTON_COUNT))
+      return mouse_button_names[sc - TH_SCANCODE_MOUSE(0)];
+
+
+    return "UNKNOWN";
+
+  }
+
+  SDL_Keycode key = SDL_GetKeyFromScancode(sc);
+  const char* sc_name = SDL_GetKeyName(key);
+
+
+  bool ascii = true;
+  for (const unsigned char* p = (const unsigned char*)sc_name; *p; ++p)
+  {
+    if (*p >= 128)
+    {
+      ascii = false;
+      break;
+    }
+  }
+
+  if (!ascii)
+    sc_name = SDL_GetScancodeName(sc);
+
+  return sc_name;
 }

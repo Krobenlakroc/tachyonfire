@@ -189,6 +189,14 @@ float distance_squared(vec3 a,vec3 b)
 }
 
 
+float screen2EyeDepth(float depth, float near, float far)
+{
+
+  float ndc = 2.0 * depth - 1.0;
+  float eye = 2.0 * far * near / (far + near + ndc * (near - far));
+  return eye;
+}
+
 vec3 WorldPosFromDepth(float depth,out float linDepth) {
   float z = depth * 2.0 - 1.0;
 
@@ -240,50 +248,52 @@ r
 void indexCubeMap(vec3 d, inout float face, inout float s, inout float t)
 {
 
-	vec3 absd;
+  vec3 absd;
 
-	float sc, tc, ma;
+  float sc, tc, ma;
 
-	absd.x = abs(d.x);
+  absd.x = abs(d.x);
 
-	absd.y = abs(d.y);
+  absd.y = abs(d.y);
 
-	absd.z = abs(d.z);
+  absd.z = abs(d.z);
 
-	face = 0.0;
+  face = 0.0;
   ma = 0.0;
   sc = 0.0;
   tc = 0.0;
 
-   float f01_cond = when_ge(absd.x,absd.y)*when_ge(absd.x,absd.z);
+  float f01_cond = when_ge(absd.x,absd.y)*when_ge(absd.x,absd.z);
 
 
 
-   tc += -d.y*f01_cond;
-   ma += absd.x*f01_cond;
-   sc += d.z*f01_cond *(-1.0*when_gt(d.x,0.0f) + 1.0*when_le(d.x,0.0f));
-   face += f01_cond*(0.0*when_gt(d.x,0.0f) + 1.0*when_le(d.x,0.0f));
+  tc += -d.y*f01_cond;
+  ma += absd.x*f01_cond;
+  sc += d.z*f01_cond *(-1.0*when_gt(d.x,0.0f) + 1.0*when_le(d.x,0.0f));
+  face += f01_cond*(0.0*when_gt(d.x,0.0f) + 1.0*when_le(d.x,0.0f));
 
 
-   float f23_cond = when_ge(absd.y,absd.x)*when_ge(absd.y,absd.z);
+  float f23_cond = when_gt(absd.y,absd.x)*when_ge(absd.y,absd.z);
 
-   tc += d.z*f23_cond*(1.0*when_gt(d.y,0.0f) + -1.0*when_le(d.y,0.0f));
-   ma += absd.y*f23_cond;
-   sc += d.x*f23_cond ;
-   face = face*(1.0-f23_cond)+ f23_cond*(2.0*when_gt(d.y,0.0f) + 3.0*when_le(d.y,0.0f));
+  tc += d.z*f23_cond*(1.0*when_gt(d.y,0.0f) + -1.0*when_le(d.y,0.0f));
+  ma += absd.y*f23_cond;
+  sc += d.x*f23_cond ;
+  face +=  f23_cond*(2.0*when_gt(d.y,0.0f) + 3.0*when_le(d.y,0.0f));
 
-
-
-   float f45_cond = when_ge(absd.z,absd.x)*when_ge(absd.z,absd.y);
-
-   tc += -d.y*f45_cond;
-   ma += absd.z*f45_cond;
-   sc += d.x*f45_cond*(1.0*when_gt(d.z,0.0f) + -1.0*when_le(d.z,0.0f)) ;
-   face += f45_cond*(4.0*when_gt(d.z,0.0f) + 5.0*when_le(d.z,0.0f));
+  //face*(1.0-f23_cond)+
 
 
-   s = (((sc / ma) + 1.0f) * 0.5f)* (1.0 - when_eq(ma,0.0f));
-   t = (((tc / ma) + 1.0f) * 0.5f)* (1.0 - when_eq(ma,0.0f));
+
+  float f45_cond = when_gt(absd.z,absd.x)*when_gt(absd.z,absd.y);
+
+  tc += -d.y*f45_cond;
+  ma += absd.z*f45_cond;
+  sc += d.x*f45_cond*(1.0*when_gt(d.z,0.0f) + -1.0*when_le(d.z,0.0f)) ;
+  face += f45_cond*(4.0*when_gt(d.z,0.0f) + 5.0*when_le(d.z,0.0f));
+
+
+  s = (((sc / max(ma,1e-8)) + 1.0f) * 0.5f);//* (1.0 - when_eq(ma,0.0f));
+  t = (((tc / max(ma,1e-8)) + 1.0f) * 0.5f);//* (1.0 - when_eq(ma,0.0f));
 
 }
 
@@ -482,6 +492,9 @@ float  shadowCalculationPoint(vec3 lightpos,vec3  fragpos,sampler2D smap,vec2 at
 
   float totalshadow = 0;
   float gradientNoise = InterleavedGradientNoise(gl_FragCoord.xy)*2*3.1459;
+
+  const float depth_offset =  -40.0;
+
   for(float i = 0; i < samplesCount; i+=1)
   {
     vec3 pos_jitter = VogelSphereSample(i,gradientNoise)*10;
@@ -502,7 +515,10 @@ float  shadowCalculationPoint(vec3 lightpos,vec3  fragpos,sampler2D smap,vec2 at
 
     float currentDepth = projCoords.z;
 
-    float shadow = when_gt(currentDepth - 0.000005 , closestDepths) ;
+    float currentdepth_linear = screen2EyeDepth(currentDepth, zNear, zFar);
+    float closestDepths_linear = screen2EyeDepth(closestDepths, zNear, zFar);
+
+    float shadow = when_gt(currentdepth_linear + depth_offset , closestDepths_linear) ;//0.000005
     totalshadow += shadow;
   }
   totalshadow /= samplesCount;
@@ -649,13 +665,7 @@ void clusterToIJK(uint pack, out uint i,out uint j, out uint k)
 
 
 
-float screen2EyeDepth(float depth, float near, float far)
-{
 
-    float ndc = 2.0 * depth - 1.0;
-    float eye = 2.0 * far * near / (far + near + ndc * (near - far));
-    return eye;
-}
 
 // uint getClusterZIndex(float screenDepth)
 // {

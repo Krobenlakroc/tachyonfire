@@ -144,6 +144,7 @@ typedef struct
     bool shadowSampled;
     bool staticSampled;
     bool staticSampledPoint[MAX_POINT_SHADOWS];
+    th_FrameBuffer shadowBufferCache;
     GLuint shadowCache_tex;
 
     fn_vec2 screen_dims;

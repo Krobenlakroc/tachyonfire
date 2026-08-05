@@ -500,7 +500,12 @@ void th_createFramebufferDepthOnly(th_FrameBuffer* framebuffer,int width,int hei
 
   glGenTextures(1, &framebuffer->depthTexture);
   glBindTexture(GL_TEXTURE_2D, framebuffer->depthTexture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+  // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, width, height, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+  glTexStorage2D(	GL_TEXTURE_2D,
+                    1,
+                  GL_DEPTH_COMPONENT24,
+                  width,
+                  height);
 
   GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
   glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);

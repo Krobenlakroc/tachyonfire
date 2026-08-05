@@ -145,6 +145,19 @@ static void CentiPlotCourse(th_CentipedeGroup* c,fn_vec3 target,int master)
   //fn_vec3 velocity = CalculateTangentUnNorm(info->course[diff -3],info->course[diff -2],info->course[diff- 1],info->course[diff],1);
   fn_vec3 velocity =  fn_subVec3(info->course[diff ],info->course[diff-1]);
 
+  int diff_offset = diff;
+  while (fn_length2(velocity) < 0.1 && diff_offset >= 1)
+  {
+    diff_offset = diff_offset - 1;
+    velocity =  fn_subVec3(info->course[diff_offset ],info->course[diff_offset-1]);
+  }
+
+  if (fn_length2(velocity) < 0.1)
+  {
+    //pick a directon and run with it:
+    velocity = fn_createVec3(0,-1,0);
+  }
+
   // fn_vec3 velocity = CalculateTangentUnNorm(
   //   info->course[diff - 2],
   //   info->course[diff - 1],
@@ -285,8 +298,11 @@ static void CentiPlotCourse(th_CentipedeGroup* c,fn_vec3 target,int master)
       }
     }
 
+    if (fn_length2(avoid_dir) > 0.1)
+    {
+      avoid_dir = fn_normalizeVec3(avoid_dir);
+    }
 
-    avoid_dir = fn_normalizeVec3(avoid_dir);
 
     wishdir = fn_addVec3(wishdir,fn_multVec3s(avoid_dir,0.65));
     wishdir = fn_normalizeVec3(wishdir);
@@ -352,7 +368,11 @@ static void CentiPlotCourse(th_CentipedeGroup* c,fn_vec3 target,int master)
 
     info->t += c->config.turn_rate;
 
-
+    if (fn_length2(velocity) < 0.1)
+    {
+      //pick a directon and run with it:
+      velocity = fn_createVec3(0,-velocity_goal,0);
+    }
 
 
     position  = fn_addVec3(position,velocity);
@@ -643,7 +663,7 @@ static void updateAgents(th_CentipedeGroup* c,int start,int end,float dt,th_Worl
     float interp_delta = 0.0;
     if (d.x*d.x + d.y*d.y + d.z*d.z < 0.01)
     {
-        interp_delta = speed/0.001;
+        interp_delta = 1.2;//speed/0.001;
     }
     else
     {
@@ -653,8 +673,10 @@ static void updateAgents(th_CentipedeGroup* c,int start,int end,float dt,th_Worl
     info->interp += interp_delta;
     if (info->interp > 1)
     {
-      info->cprog++;
-      info->interp = info->interp - 1;
+      // info->cprog++;
+      // info->interp = info->interp - 1;
+      info->cprog += (int)info->interp;
+      info->interp = info->interp - (int)info->interp;
       if (info->cprog > info->course_count - 4)
       {
         info->cprog = 0;
@@ -1101,7 +1123,7 @@ void th_centipedeUpdate(th_CentipedeGroup* c,float dt,fn_RawInput* input)
     }
     else if (info->state == TH_FOLLOW)
     {
-      if (agent_end->cprog >= info->target_index &&  agent->cprog < agent_end->cprog  )
+      if ((agent_end->cprog >= info->target_index &&  agent->cprog < agent_end->cprog) || th_time() - info->start_time > (20000.0/(info->config.speed/0.8))  )
       {
         //plot new course
         info->start_time = th_time();

@@ -763,15 +763,35 @@ void th_initRenderingOnce(th_RendererState* state,bool sharm,bool gencubemaps,in
 
 
 
-  glGenTextures(1, &state->shadowCache_tex);
-  glBindTexture(GL_TEXTURE_2D, state->shadowCache_tex);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, state->th_shadowmap_resolution*SHADOW_GRID, state->th_shadowmap_resolution*SHADOW_GRID, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-  float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-  glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+  // glGenTextures(1, &state->shadowCache_tex);
+  // glBindTexture(GL_TEXTURE_2D, state->shadowCache_tex);
+  // // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT24, state->th_shadowmap_resolution*SHADOW_GRID, state->th_shadowmap_resolution*SHADOW_GRID, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+  //
+  // glTexStorage2D(	GL_TEXTURE_2D,
+  //                   1,
+  //                 GL_DEPTH_COMPONENT24,
+  //                 state->th_shadowmap_resolution*SHADOW_GRID,
+  //                 state->th_shadowmap_resolution*SHADOW_GRID);
+  //
+  // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  // // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  // // float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  // // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+  //
+  // GLint swizzleMask[] = {GL_RED, GL_RED, GL_RED, GL_ONE};
+  // glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzleMask);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_NONE);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+  // float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+  // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+
+  th_createFramebufferDepthOnly(&state->shadowBufferCache,state->th_shadowmap_resolution*SHADOW_GRID,state->th_shadowmap_resolution*SHADOW_GRID);
+  state->shadowCache_tex = state->shadowBufferCache.depthTexture;
 
 
   /*
@@ -1627,7 +1647,7 @@ void th_LoadData(bool sharm,bool gencubemaps,int resolution,fn_Config* config,bo
 }
 
 
-void th_renderPointShadows(th_RendererState* state,fn_vec3 point_shadow_pos,fn_mat4* shadow_viewproj_point,fn_vec2 offset,int offset_static_check,int mask)
+void th_renderPointShadows(th_RendererState* state,fn_vec3 point_shadow_pos,fn_mat4* shadow_viewproj_point,fn_vec2 offset,int offset_static_check,int mask,bool only_static)
 {
   //omni light
   /*
@@ -1678,51 +1698,82 @@ void th_renderPointShadows(th_RendererState* state,fn_vec3 point_shadow_pos,fn_m
   }
   any_mask = any_mask && state->staticSampledPoint[0 + offset_static_check*6];
 
-  if (any_mask && state->th_dynamic_objs && state->th_dynamic_shadows)
+  //any_mask &&
+
+  GLsizei width_copy = state->th_shadowmap_resolution*scale;
+  GLsizei height_copy = state->th_shadowmap_resolution*1.5*scale ;
+
+  if (state->staticSampledPoint[0 + offset_static_check*6])// && state->th_dynamic_objs && state->th_dynamic_shadows
   {
     x_vp = state->th_shadowmap_resolution + offset.x;
     y_vp = offset.y;
-      glCopyImageSubData(state->shadowCache_tex,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->th_shadowmap_resolution*scale,state->th_shadowmap_resolution*1.5*scale,1);
+
+
+
+    // th_printlnDevConsole("%i %i %i %i",x_vp,y_vp,width_copy,height_copy);
+    // th_printlnDevConsole("%i %i",(int)state->th_shadowmap_resolution*4,(int)state->th_shadowmap_resolution*4);
+
+    glCopyImageSubData(state->shadowCache_tex,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,x_vp,y_vp,0,width_copy,height_copy,1);
   }
 
   for (int i = 0;i < 6;i++)
   {
     viewports[i].x += offset.x;
     viewports[i].y += offset.y;
+  }
+
+  if (!state->staticSampledPoint[0 + offset_static_check*6])
+  {
+    for (int i = 0;i < 6;i++)
+    {
+      glViewport(viewports[i].x,viewports[i].y,viewports[i].z*scale,viewports[i].w*scale);
+      x_vp = viewports[i].x;
+      y_vp = viewports[i].y;
+
+      omni_viewproj = fn_multMat4(mats[i],omni_proj);
+
+      if (!state->staticSampledPoint[i + offset_static_check*6])
+      {
+
+
+        r_bindShader(&state->shadowOccluder);
+        r_sendmat4(&state->shadowOccluder,omni_viewproj,"modelViewprojection");
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER,state->model_data.cmds.drawCommandBuffer);
+        th_renderArrayCmdBuffer(&state->model_data,state->drawcommands_count-state->drawcommands_dynamic_count);
+
+        state->staticSampledPoint[i + offset_static_check*6] = true;
+      }
+    }
+
+    x_vp = state->th_shadowmap_resolution + offset.x;
+    y_vp = offset.y;
+
+
+
+  }
+
+  //dont render dynamic geometry to cache
+  if (only_static)
+  {
+    return;
+  }
+
+  for (int i = 0;i < 6;i++)
+  {
+
     glViewport(viewports[i].x,viewports[i].y,viewports[i].z*scale,viewports[i].w*scale);
     x_vp = viewports[i].x;
     y_vp = viewports[i].y;
 
     omni_viewproj = fn_multMat4(mats[i],omni_proj);
-    bool skipcopy = true;
-    if (!state->staticSampledPoint[i + offset_static_check*6])
-    {
 
-      r_bindShader(&state->shadowOccluder);
-      r_sendmat4(&state->shadowOccluder,omni_viewproj,"modelViewprojection");
-      glBindBuffer(GL_DRAW_INDIRECT_BUFFER,state->model_data.cmds.drawCommandBuffer);
-      th_renderArrayCmdBuffer(&state->model_data,state->drawcommands_count-state->drawcommands_dynamic_count);
-
-      glCopyImageSubData(state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->shadowCache_tex,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->th_shadowmap_resolution*0.5*scale,state->th_shadowmap_resolution*0.5*scale,1);
-
-      state->staticSampledPoint[i + offset_static_check*6] = true;
-    }
-    else
-    {
-      skipcopy = false;
-    }
 
     if ((mask >> i & 1))
     {
       continue;
     }
 
-    //continue;
 
-    // if (!skipcopy && state->th_dynamic_objs && state->th_dynamic_shadows)
-    // {
-    //     glCopyImageSubData(state->shadowCache_tex,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,x_vp,y_vp,0,state->th_shadowmap_resolution*0.5,state->th_shadowmap_resolution*0.5,1);
-    // }
 
 
     if (state->th_dynamic_objs && state->th_dynamic_shadows)
@@ -2351,62 +2402,47 @@ void th_render(fn_mat4 modelViewprojection,fn_mat4 proj,fn_mat4 view,fn_vec2 scr
     memcpy(&state->dynamic_shadowcaster_commands.mapped[state->dynamic_shadowcaster_commands.commandcount_max*(th_frame()%3)],state->drawcommands_dynshadow,sizeof(r_DrawElementsIndirectCommand)*state->drawcommands_count_dynamicshadowcaster);
 
 
+    //render static portion of shadows to shadow cache
+    if (!state->staticSampled)
+    {
+      glBindFramebuffer(GL_FRAMEBUFFER, state->shadowBufferCache.framebuffer);
+      glViewport(0,0,state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale);
+      glClear(GL_DEPTH_BUFFER_BIT);
+
+      glEnable(GL_DEPTH_TEST);
+      glDepthFunc(GL_LESS);
+
+      r_bindShader(&state->shadowOccluder);
+      r_sendmat4(&state->shadowOccluder,shadow_viewproj,"modelViewprojection");
+      glBindBuffer(GL_DRAW_INDIRECT_BUFFER,state->model_data.cmds.drawCommandBuffer);
+      th_renderArrayCmdBuffer(&state->model_data,state->drawcommands_count-state->drawcommands_dynamic_count);
+
+
+      for (int oli = 0 ; oli < state->level.omni_light_count;oli++)
+      {
+        int idx = (int)(state->level.omni_light_atlascoords[oli].z);
+        fn_vec2 resvector = fn_createVec2(state->th_shadowmap_resolution,state->th_shadowmap_resolution);
+        th_renderPointShadows(state,state->level.omni_light_positions[oli],&shadow_viewproj_point[idx*6],fn_multVec2(state->level.omni_light_atlascoords[oli].xy,resvector),idx,state->level.omni_light_masks[oli],true);
+      }
+
+      state->staticSampled = true;
+    }
 
 
     glBindFramebuffer(GL_FRAMEBUFFER, state->shadowBuffer.framebuffer);
     // glClear(GL_DEPTH_BUFFER_BIT);
     glViewport(0,0,state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale);
 
-    if (!state->staticSampled)
-    {
-      glClear(GL_DEPTH_BUFFER_BIT);
-    }
-    else if (state->th_dynamic_objs && state->th_dynamic_shadows)
-    {
-      glEnable(GL_SCISSOR_TEST);
-      glScissor(0, 0, state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale);
-      glClear(GL_DEPTH_BUFFER_BIT);
-      glDisable(GL_SCISSOR_TEST);
-    }
 
 
 
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
 
-    if (!state->staticSampled)
-    {
+
+    glCopyImageSubData(state->shadowCache_tex,GL_TEXTURE_2D,0,0,0,0,state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,0,0,0,state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale,1);
 
 
-
-      //TODO dont render dynamic objects
-      r_bindShader(&state->shadowOccluder);
-      r_sendmat4(&state->shadowOccluder,shadow_viewproj,"modelViewprojection");
-      glBindBuffer(GL_DRAW_INDIRECT_BUFFER,state->model_data.cmds.drawCommandBuffer);
-      th_renderArrayCmdBuffer(&state->model_data,state->drawcommands_count-state->drawcommands_dynamic_count);
-
-      // r_bindShader(&tess_shader_occluder);
-      // r_sendmat4(&tess_shader_occluder,shadow_viewproj,"modelViewprojection");
-      if (state->drawcommands_count_tess)
-      {
-        glBindBuffer(GL_DRAW_INDIRECT_BUFFER,state->model_data_tess.cmds.drawCommandBuffer);//tess_shadowcaster_commands.buffer
-
-        glPolygonOffset(40,0);
-        glEnable(GL_POLYGON_OFFSET_FILL);
-
-        th_renderArrayCmdBuffer(&state->model_data_tess,state->drawcommands_count_tess);
-        glDisable(GL_POLYGON_OFFSET_FILL);
-      }
-
-
-      glCopyImageSubData(state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,0,0,0,state->shadowCache_tex,GL_TEXTURE_2D,0,0,0,0,state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale,1);
-
-      state->staticSampled = true;
-    }
-    else if (state->th_dynamic_objs && state->th_dynamic_shadows)
-    {
-      glCopyImageSubData(state->shadowCache_tex,GL_TEXTURE_2D,0,0,0,0,state->shadowBuffer.depthTexture,GL_TEXTURE_2D,0,0,0,0,state->th_shadowmap_resolution*state->level.sun_shadow_scale,state->th_shadowmap_resolution*state->level.sun_shadow_scale,1);
-    }
 
 
 
@@ -2435,18 +2471,17 @@ void th_render(fn_mat4 modelViewprojection,fn_mat4 proj,fn_mat4 view,fn_vec2 scr
       }
     }
 
-    //th_renderArrayCmdBufferPatches(&state->model_data_tess,state->drawcommands_count_tess);
+
 
 
     for (int oli = 0 ; oli < state->level.omni_light_count;oli++)
     {
       int idx = (int)(state->level.omni_light_atlascoords[oli].z);
       fn_vec2 resvector = fn_createVec2(state->th_shadowmap_resolution,state->th_shadowmap_resolution);
-      th_renderPointShadows(state,state->level.omni_light_positions[oli],&shadow_viewproj_point[idx*6],fn_multVec2(state->level.omni_light_atlascoords[oli].xy,resvector),idx,state->level.omni_light_masks[oli]);
+      th_renderPointShadows(state,state->level.omni_light_positions[oli],&shadow_viewproj_point[idx*6],fn_multVec2(state->level.omni_light_atlascoords[oli].xy,resvector),idx,state->level.omni_light_masks[oli],false);
     }
 
-    // th_renderPointShadows(point_shadow_pos,&shadow_viewproj_point[0],fn_createVec2(0,0),0);
-    // th_renderPointShadows(fn_createVec3(287.077026, -1413.032471 ,-530.029907),&shadow_viewproj_point[6],fn_createVec2(state->th_shadowmap_resolution,0),1);
+
 
     glViewport(0,0,w1,h1);
 
@@ -3419,6 +3454,8 @@ void th_render(fn_mat4 modelViewprojection,fn_mat4 proj,fn_mat4 view,fn_vec2 scr
   // }
 
   th_syncTripleSync(state->bonesSyncs);
+
+  //fn_getGLError();
 
 
 }

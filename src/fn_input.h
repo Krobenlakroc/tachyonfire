@@ -4,6 +4,15 @@
 #include <stdbool.h>
 #include <SDL.h>
 
+
+//start at 230
+#define TH_SCANCODE_CUSTOM 514
+#define TH_NUM_SCANCODES 600
+
+#define TH_SCANCODE_MOUSE(X) (514 + X)
+
+
+
 typedef struct
 {
   Uint32 leftPressedT;
@@ -12,10 +21,10 @@ typedef struct
   Uint32 rightReleasedT;
 
   int numKeys;
-  Uint8 currentKeyStates[SDL_NUM_SCANCODES] ;
-  Uint8 currentKeyStatesPrev[SDL_NUM_SCANCODES] ;
-  Uint32 keyPresstime[SDL_NUM_SCANCODES];
-  Uint32 keyReleasetime[SDL_NUM_SCANCODES];
+  Uint8 currentKeyStates[TH_NUM_SCANCODES] ;
+  Uint8 currentKeyStatesPrev[TH_NUM_SCANCODES] ;
+  Uint32 keyPresstime[TH_NUM_SCANCODES];
+  Uint32 keyReleasetime[TH_NUM_SCANCODES];
   bool spaceTapped;
   bool spaceReleased;
   float xrel;

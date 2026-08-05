@@ -172,6 +172,10 @@ else if (SetProcessDPIAware) {
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, config->gl_minor );
   //SDL_GL_SetAttribute( SDL_GL_CONTEXT_FLAGS, GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR);
   SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+  // SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS,
+  //                     SDL_GL_CONTEXT_DEBUG_FLAG);
+
   SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
   SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
@@ -326,12 +330,12 @@ const char * fn_errorString(GLenum error)
 
  void fn_getGLError()
 {
-  // GLenum error = GL_NO_ERROR;
-  // error = glGetError();
-  // if( error != GL_NO_ERROR )
-  // {
-  //     printf( "OpenGL Error! %s\n", fn_errorString( error ) );
-  // }
+  GLenum error = GL_NO_ERROR;
+  error = glGetError();
+  if( error != GL_NO_ERROR )
+  {
+      printf( "OpenGL Error! %s\n", fn_errorString( error ) );
+  }
 }
 
  void callbackerror(GLenum source,

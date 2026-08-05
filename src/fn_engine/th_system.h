@@ -1,4 +1,5 @@
 #pragma once
+#include <SDL.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <stdarg.h>
@@ -94,4 +95,6 @@ void th_setPathVictory(char* path);
 
 char* th_getPathSettings();
 char* th_getPathVictory();
+
+const char* th_getKeyName(SDL_Scancode sc);
 

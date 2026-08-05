@@ -60,7 +60,7 @@ typedef struct
 }th_ReplayFrame;
 
 int main(int argc, char **argv) {
-
+  printf("Num scancodes: %d %d\n",TH_NUM_SCANCODES,sizeof(SDL_Scancode));
   //SDL
   if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_TIMER ) < 0 )
   {
@@ -458,14 +458,14 @@ int main(int argc, char **argv) {
   input.ypos_win = config.height/2.f;
   input.changemap = false;
   unsigned char fillval = 0xFF;
-  memset(input.keyPresstime,fillval,sizeof(Uint32)*SDL_NUM_SCANCODES);
-  memset(input.keyReleasetime,fillval,sizeof(Uint32)*SDL_NUM_SCANCODES);
+  memset(input.keyPresstime,fillval,sizeof(Uint32)*TH_NUM_SCANCODES);
+  memset(input.keyReleasetime,fillval,sizeof(Uint32)*TH_NUM_SCANCODES);
 
 
 
   unsigned char fillval2 = 0x00;
-  memset(input.currentKeyStates,fillval2,sizeof(Uint8)*SDL_NUM_SCANCODES);
-  memset(input.currentKeyStatesPrev,fillval2,sizeof(Uint8)*SDL_NUM_SCANCODES);
+  memset(input.currentKeyStates,fillval2,sizeof(Uint8)*TH_NUM_SCANCODES);
+  memset(input.currentKeyStatesPrev,fillval2,sizeof(Uint8)*TH_NUM_SCANCODES);
   // printf("%u\n",(Uint32)((1<<32)-1) );
 
   input.binding_forward = (SDL_Scancode)th_keyValueGetFloat(keyvals,num_keyvals,"forward_key");

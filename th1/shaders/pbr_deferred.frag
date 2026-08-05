@@ -189,6 +189,15 @@ float when_eq(float x, float y) {
   return  1- abs(sign(x - y));
 }
 
+float screen2EyeDepth(float depth, float near, float far)
+{
+
+  float ndc = 2.0 * clamp(depth,0.0,1.0) - 1.0;
+  float eye = 2.0 * far * near / (far + near + ndc * (near - far));
+  return eye;
+}
+
+
 /*
 r
 ----
@@ -227,16 +236,18 @@ void indexCubeMap(vec3 d, inout float face, inout float s, inout float t)
    face += f01_cond*(0.0*when_gt(d.x,0.0f) + 1.0*when_le(d.x,0.0f));
 
 
-   float f23_cond = when_ge(absd.y,absd.x)*when_ge(absd.y,absd.z);
+   float f23_cond = when_gt(absd.y,absd.x)*when_ge(absd.y,absd.z);
 
    tc += d.z*f23_cond*(1.0*when_gt(d.y,0.0f) + -1.0*when_le(d.y,0.0f));
    ma += absd.y*f23_cond;
    sc += d.x*f23_cond ;
-   face = face*(1.0-f23_cond)+ f23_cond*(2.0*when_gt(d.y,0.0f) + 3.0*when_le(d.y,0.0f));
+   face +=  f23_cond*(2.0*when_gt(d.y,0.0f) + 3.0*when_le(d.y,0.0f));
+
+   //face*(1.0-f23_cond)+
 
 
 
-   float f45_cond = when_ge(absd.z,absd.x)*when_ge(absd.z,absd.y);
+   float f45_cond = when_gt(absd.z,absd.x)*when_gt(absd.z,absd.y);
 
    tc += -d.y*f45_cond;
    ma += absd.z*f45_cond;
@@ -244,8 +255,8 @@ void indexCubeMap(vec3 d, inout float face, inout float s, inout float t)
    face += f45_cond*(4.0*when_gt(d.z,0.0f) + 5.0*when_le(d.z,0.0f));
 
 
-   s = (((sc / ma) + 1.0f) * 0.5f)* (1.0 - when_eq(ma,0.0f));
-   t = (((tc / ma) + 1.0f) * 0.5f)* (1.0 - when_eq(ma,0.0f));
+   s = (((sc / max(ma,1e-8)) + 1.0f) * 0.5f);//* (1.0 - when_eq(ma,0.0f));
+   t = (((tc / max(ma,1e-8)) + 1.0f) * 0.5f);//* (1.0 - when_eq(ma,0.0f));
 
 }
 //dying is natral, everything that has ever lived has died. The way we live isn't natural, you should be more worried about living than dying.
@@ -580,6 +591,8 @@ float  shadowCalculationPoint(vec3 lightpos,vec3  fragpos,sampler2D smap,vec2 at
 
   bool fastpath = allInvocations(lindepth > 0.05);
   float pjitter = omni_light_jitter;
+
+  const float depth_offset =  -40.0;
   if (fastpath)
   {
 
@@ -602,7 +615,11 @@ float  shadowCalculationPoint(vec3 lightpos,vec3  fragpos,sampler2D smap,vec2 at
     float currentDepth = projCoords.z;
     //0.00001
     //0.00007
-    float shadow = when_gt(currentDepth -  0.00019, closestDepths) ;//0.000005
+    //-  0.00019
+    float currentdepth_linear = screen2EyeDepth(currentDepth, zNear, zFar);
+    float closestDepths_linear = screen2EyeDepth(closestDepths, zNear, zFar);
+
+    float shadow = when_gt(currentdepth_linear + depth_offset, closestDepths_linear) ;//0.000005
     totalshadow += shadow;
 
     totalshadow /= 1;
@@ -631,7 +648,12 @@ float  shadowCalculationPoint(vec3 lightpos,vec3  fragpos,sampler2D smap,vec2 at
       float currentDepth = projCoords.z;
       //0.00001
       //0.00007
-      float shadow = when_gt(currentDepth -  0.00019, closestDepths) ;//0.000005
+      //-  0.00019
+
+      float currentdepth_linear = screen2EyeDepth(currentDepth, zNear, zFar);
+      float closestDepths_linear = screen2EyeDepth(closestDepths, zNear, zFar);
+
+      float shadow = when_gt(currentdepth_linear + depth_offset , closestDepths_linear) ;//0.000005
       totalshadow += shadow;
     }
     totalshadow /= samplesCountPoint;
@@ -875,13 +897,7 @@ void clusterToIJK(uint pack, out uint i,out uint j, out uint k)
 
 
 
-float screen2EyeDepth(float depth, float near, float far)
-{
 
-    float ndc = 2.0 * clamp(depth,0.0,1.0) - 1.0;
-    float eye = 2.0 * far * near / (far + near + ndc * (near - far));
-    return eye;
-}
 
 // uint getClusterZIndex(float screenDepth)
 // {
@@ -1280,7 +1296,7 @@ void main()
   vec3 color;
   vec3 acess = vec3(0,0,0);
   float dynamic_flag = 0.0;
-
+   vec2 uv_debug = vec2(0,0);
 
     float ldepth;
 //     vec3 outPosition = WorldPosFromDepth(gl_FragCoord.xy*invWindow,depthval,ldepth);
@@ -1461,6 +1477,8 @@ void main()
     vec3 emissive = vec3(0.0);
     float emissive_is_1 = 0.0;
     vec3 emissive_ndotl = vec3(0.0);
+
+
 
     for (int i = 0 ; i < count;i++)
     {
@@ -1978,6 +1996,13 @@ void main()
     uint offset = arr[tile_index%2].x;
 
     fragColor = vec3(0.0,0.0,float(count)/15.0);
+    #endif
+
+
+    //#define UV_DEBUG_VIEW
+    #ifdef UV_DEBUG_VIEW
+    fragColor = vec3(uv_debug.x,uv_debug.y,0.0);
+
     #endif
 
 

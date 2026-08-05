@@ -2,7 +2,7 @@
 #include "fn_engine/th_time.h"
 #define defaultFocus {false,false}
 bool quit = false;
-static Uint8 dummy[SDL_NUM_SCANCODES] = {0} ;
+static Uint8 dummy[TH_NUM_SCANCODES] = {0} ;
 static float px = 0;
 static float py = 0;
 typedef struct
@@ -180,14 +180,29 @@ void fn_getInput(SDL_Event* event,fn_RawInput* input,float dt)
   }
   if (th_frame() != 0)
   {
-    memcpy(input->currentKeyStatesPrev,input->currentKeyStates,sizeof(Uint8)*SDL_NUM_SCANCODES);
+    memcpy(input->currentKeyStatesPrev,input->currentKeyStates,sizeof(Uint8)*TH_NUM_SCANCODES);
   }
   else
   {
     memcpy(input->currentKeyStatesPrev,SDL_GetKeyboardState(NULL),sizeof(Uint8)*SDL_NUM_SCANCODES);
+    for (int idx = SDL_NUM_SCANCODES ; idx < TH_NUM_SCANCODES;idx++)
+    {
+      input->currentKeyStatesPrev[idx] = 0;
+    }
   }
 
   memcpy(input->currentKeyStates,SDL_GetKeyboardState(NULL),sizeof(Uint8)*SDL_NUM_SCANCODES);
+
+  for (int idx = SDL_NUM_SCANCODES ; idx < TH_NUM_SCANCODES;idx++)
+  {
+    input->currentKeyStates[idx] = 0;
+  }
+ for (int idx = TH_SCANCODE_CUSTOM; idx < TH_SCANCODE_CUSTOM + 31;idx++)
+ {
+  input->currentKeyStates[idx] =  i & SDL_BUTTON(idx - TH_SCANCODE_CUSTOM + 1 );
+ }
+
+
 //  input->currentKeyStates = SDL_GetKeyboardState( &input->numKeys );
   if (quit)
   {
@@ -238,7 +253,7 @@ void fn_getInput(SDL_Event* event,fn_RawInput* input,float dt)
   py= y;
   px = x;
   Uint32 ticks = SDL_GetTicks();
-  // for (int i = 0 ; i < SDL_NUM_SCANCODES;i++)
+  // for (int i = 0 ; i < TH_NUM_SCANCODES;i++)
   // {
   //   if (input->currentKeyStates[i] && !input->currentKeyStatesPrev[i])
   //   {

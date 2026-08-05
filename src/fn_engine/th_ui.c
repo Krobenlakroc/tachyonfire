@@ -394,7 +394,7 @@ void th_createMainMenu(th_UIlayout* layout,th_Character* cmap,fn_vec2 screenSize
 
     fn_vec2 spos = fn_multVec2(fn_createVec2(0.46,phi),screenSize);
     float y2 =  spos.y - 0.8*64.0*((th_getAspectScale()));
-    th_createUIElementText(&layout->elements[layout->element_count],"V1.2",fn_createVec2(spos.x,y2),0.333,fn_createVec3(0,0.8,1.0),cmap);
+    th_createUIElementText(&layout->elements[layout->element_count],"V1.3",fn_createVec2(spos.x,y2),0.333,fn_createVec3(0,0.8,1.0),cmap);
     layout->element_count++;
 
     fn_vec3 hcolor = fn_createVec3(1,0.8,0);
@@ -553,27 +553,7 @@ void th_button_preset_callback(void* d_in)
     }
 }
 
-static const char* getKeyName(SDL_Scancode sc)
-{
-    SDL_Keycode key = SDL_GetKeyFromScancode(sc);
-    const char* sc_name = SDL_GetKeyName(key);
 
-
-    bool ascii = true;
-    for (const unsigned char* p = (const unsigned char*)sc_name; *p; ++p)
-    {
-        if (*p >= 128)
-        {
-            ascii = false;
-            break;
-        }
-    }
-
-    if (!ascii)
-        sc_name = SDL_GetScancodeName(sc);
-
-    return sc_name;
-}
 
 void th_keybind_callback(void* data)
 {
@@ -582,7 +562,7 @@ void th_keybind_callback(void* data)
     th_UIElement* elem = kdata->element;
 
     // const char* sc_name = SDL_GetScancodeName(elem->sc_update);
-    const char* sc_name = getKeyName(elem->sc_update);
+    const char* sc_name = th_getKeyName(elem->sc_update);
     // SDL_Keycode key = SDL_GetKeyFromScancode(elem->sc_update);
     // const char* sc_name = SDL_GetKeyName(key);
 
@@ -2538,7 +2518,7 @@ void th_processUI(th_UIlayout* layout,fn_RawInput* input,fn_vec2 screenSize)
         {
             if (elem->depressed)
             {
-                for (int k = 0 ; k < SDL_NUM_SCANCODES;k++)
+                for (int k = 0 ; k < TH_NUM_SCANCODES;k++)
                 {
                     if (input->currentKeyStates[k] && !input->currentKeyStatesPrev[k])
                     {

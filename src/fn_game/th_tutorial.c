@@ -1,4 +1,5 @@
 #include "th_tutorial.h"
+#include "../fn_engine/th_system.h"
 #include "../fn_engine/th_level.h"
 #include "../fn_engine/th_ui.h"
 #include "th_eyeball.h"
@@ -42,27 +43,7 @@ void th_tutorialInitialize(th_Allocator* alloc,th_TutorialObject* c,th_LevelStat
     }
 }
 
-static const char* getKeyName(SDL_Scancode sc)
-{
-    SDL_Keycode key = SDL_GetKeyFromScancode(sc);
-    const char* sc_name = SDL_GetKeyName(key);
 
-
-    bool ascii = true;
-    for (const unsigned char* p = (const unsigned char*)sc_name; *p; ++p)
-    {
-        if (*p >= 128)
-        {
-            ascii = false;
-            break;
-        }
-    }
-
-    if (!ascii)
-        sc_name = SDL_GetScancodeName(sc);
-
-    return sc_name;
-}
 
 #define N_LINES_TUT 4
 static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Character* cmap,const char* messages[][N_LINES_TUT],int replace_mode[][N_LINES_TUT],fn_RawInput* input)
@@ -90,7 +71,7 @@ static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Charact
             }
             else if (repmode == 1)
             {
-                const char* crouch_key = getKeyName(input->binding_crouch);
+                const char* crouch_key = th_getKeyName(input->binding_crouch);
                 int buffer_size = snprintf(NULL, 0,  messages[seq][idx],crouch_key) + 1;
 
                 if (buffer_size > 1024)
@@ -101,7 +82,7 @@ static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Charact
             }
             else if (repmode == 2)
             {
-                const char* shotgun_key = getKeyName(input->binding_weapon2);
+                const char* shotgun_key = th_getKeyName(input->binding_weapon2);
                 int buffer_size = snprintf(NULL, 0,  messages[seq][idx],shotgun_key) + 1;
 
                 if (buffer_size > 1024)
@@ -112,7 +93,7 @@ static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Charact
             }
             else if (repmode == 3)
             {
-                const char* machinegun_key = getKeyName(input->binding_weapon1);
+                const char* machinegun_key = th_getKeyName(input->binding_weapon1);
                 int buffer_size = snprintf(NULL, 0,  messages[seq][idx],machinegun_key) + 1;
 
                 if (buffer_size > 1024)
@@ -123,7 +104,7 @@ static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Charact
             }
             else if (repmode == 4)
             {
-                const char* hammer_key = getKeyName(input->binding_weapon3);
+                const char* hammer_key = th_getKeyName(input->binding_weapon3);
                 int buffer_size = snprintf(NULL, 0,  messages[seq][idx],hammer_key) + 1;
 
                 if (buffer_size > 1024)
@@ -134,7 +115,7 @@ static void renderTextMessages(int seq,int n_lines,fn_vec2 screenSize,th_Charact
             }
             else if (repmode == 5)
             {
-                const char* next_key = getKeyName(SDL_SCANCODE_N);
+                const char* next_key = th_getKeyName(SDL_SCANCODE_N);
                 int buffer_size = snprintf(NULL, 0,  messages[seq][idx],next_key) + 1;
 
                 if (buffer_size > 1024)
@@ -451,11 +432,11 @@ void th_tutorialUpdateBeetle(th_TutorialObject* c,float dt,fn_RawInput* input,fn
 
     int replace_mode[N_MESSAGES_TUT][N_LINES_TUT] = {{0,0,0,0},{0,0,0,5},{0,0,0,0}};
 
-    // const char* crouch_key = getKeyName(input->binding_crouch);
+    // const char* crouch_key = th_getKeyName(input->binding_crouch);
     //
-    // const char* machinegun_key = getKeyName(input->binding_weapon1);
-    // const char* hammer_key = getKeyName(input->binding_weapon3);
-    // const char* shotgun_key = getKeyName(input->binding_weapon2);
+    // const char* machinegun_key = th_getKeyName(input->binding_weapon1);
+    // const char* hammer_key = th_getKeyName(input->binding_weapon3);
+    // const char* shotgun_key = th_getKeyName(input->binding_weapon2);
 
     bool candisplay = (c->sequence_progression != SEQ_BLNK_FIRST) || (c->displayed_mesg_question != last_picked_question);
 
@@ -546,11 +527,11 @@ void th_tutorialUpdateSnake(th_TutorialObject* c,float dt,fn_RawInput* input,fn_
 
     int replace_mode[N_MESSAGES_TUT][N_LINES_TUT] = {{0,0,0,0},{0,0,0,5},{0,0,0,0}};
 
-    // const char* crouch_key = getKeyName(input->binding_crouch);
+    // const char* crouch_key = th_getKeyName(input->binding_crouch);
     //
-    // const char* machinegun_key = getKeyName(input->binding_weapon1);
-    // const char* hammer_key = getKeyName(input->binding_weapon3);
-    // const char* shotgun_key = getKeyName(input->binding_weapon2);
+    // const char* machinegun_key = th_getKeyName(input->binding_weapon1);
+    // const char* hammer_key = th_getKeyName(input->binding_weapon3);
+    // const char* shotgun_key = th_getKeyName(input->binding_weapon2);
 
     bool candisplay = (c->sequence_progression != SEQ_BLNK_FIRST) || (c->displayed_mesg_question != last_picked_question);
 
