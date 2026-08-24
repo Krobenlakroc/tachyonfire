@@ -3212,9 +3212,36 @@ void th_render(fn_mat4 modelViewprojection,fn_mat4 proj,fn_mat4 view,fn_vec2 scr
         state->hudLayout.elements[state->hudLayout.status_offset + 3].tint = fn_createVec3(0.2,0.7,0.2);
 
         float alpha = (float)th_getEnemyCount() / (float) state->level.levelstate.num_enemies_highwater ;
+        float alpha_preclamp = fn_clamp(alpha,0.001,1.0);
         alpha = fn_clamp(alpha,0.05,1.0);
 
         state->hudLayout.elements[state->hudLayout.status_offset + 3].alpha = alpha;
+
+
+
+
+        if (alpha_preclamp < 0.05 || (th_getEnemyCount() < 5 && state->level.levelstate.num_enemies_highwater > 1 ))
+        {
+          th_timer_t killtime_seconds = (th_getKillTimer() - th_time())/1000.0;
+          killtime_seconds = killtime_seconds > 0.0 ? killtime_seconds : 0.0;
+          static char killtime_str[16];
+          snprintf(killtime_str,16,"%.2f",killtime_seconds);
+
+          float w_op = th_stringDims("00.00",0.333,character_map).x;
+
+          state->hudLayout.elements[state->hudLayout.status_offset + 2].text = killtime_str;
+          state->hudLayout.elements[state->hudLayout.status_offset + 2].position.x = 0.5*state->screen_dims.x - w_op*0.5;
+        }
+        else
+        {
+          float w_op = th_stringDims("Enemies Remaining",0.333,character_map).x;
+
+          state->hudLayout.elements[state->hudLayout.status_offset + 2].text = "Enemies Remaining";
+          state->hudLayout.elements[state->hudLayout.status_offset + 2].position.x = 0.5*state->screen_dims.x - w_op*0.5;
+        }
+
+
+
       }
       else if (state->level.levelstate.progress_state == TH_BAR_FOUR)
       {
@@ -4063,6 +4090,21 @@ void th_runProgram(th_RendererState* state,fn_RawInput* input,float dt,a_AudioSy
    }
 
    //th_printlnDevConsole("%f",th_getViolenceLevel());
+
+   if (state->level.levelstate.progress_state == TH_BAR_THREE && state->gameState == STATE_GAMEPLAY)
+   {
+     int enemy_count = th_getEnemyCount();
+
+     float alpha = (float)enemy_count / (float) state->level.levelstate.num_enemies_highwater ;
+     alpha = fn_clamp(alpha,0.001,1.0);
+
+     if (alpha < 0.05 || (th_getEnemyCount() < 5 && state->level.levelstate.num_enemies_highwater > 1 ))
+     {
+       float killtime = fn_min(5000.0*(float)enemy_count,30000.0);
+        th_runKillTimer(killtime);
+     }
+   }
+
 
    th_VictoryStats vic_stats = th_checkVictory(state->level.ls.player,th_time() - state->level.ls.level_start_time,dt);
    if (state->gameState == STATE_GAMEPLAY && vic_stats.victory)//

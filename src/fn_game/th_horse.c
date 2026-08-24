@@ -1029,7 +1029,7 @@ void th_horseUpdate(th_HorseGroup* c,float dt)
           }
           //fn_printVec3(gemdir);
           //75 degrees
-          if ( (fn_dot(gemdir,vel) > 0.08715560746  || projectile->type == TH_HAMMER_PROJECTILE )&& c->data[i].hasgem[j] ) //&& fn_angle(gemdir,vel) < fn_radians(90)
+          if ( (fn_dot(gemdir,vel) > -0.15  || projectile->type == TH_HAMMER_PROJECTILE )&& c->data[i].hasgem[j] ) //&& fn_angle(gemdir,vel) < fn_radians(90)
           {
             //c->entities_gems[i*6 + j].alive = false;
             if (projectile->type == TH_MACHINEGUN_BULLET)
@@ -2336,7 +2336,8 @@ void th_horseInitialize(th_Allocator* alloc,th_HorseGroup* c,int count,fn_vec3* 
   th_createAllocatorTemporary(alloc,&c->temp_alloc);
 
   c->alloc = alloc;
-  const float gem_starting_health = 150.0;
+  const float gem_starting_health = 120.0;
+
   c->levelstate = levelstate;
   c->count = count;
   c->data = th_alloc(alloc,sizeof(th_HorseData)*count);
@@ -2826,4 +2827,7 @@ void th_horseSetEasyMode(th_HorseGroup* c,int i)
   c->data[i].hasgem[3] = false;
   c->data[i].hasgem[4] = false;
   c->data[i].hasgem[5] = false;
+
+  c->data[i].gemhealth[0] = 104.0;
+  c->data[i].gemhealth[1] = 104.0;
 }

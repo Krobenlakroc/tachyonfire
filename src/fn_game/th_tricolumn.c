@@ -1501,7 +1501,7 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
                         }
                         //
                         //printf("%f %i\n",fn_dot(gemdir,vel),j);
-                        if ( (fn_dot(gemdir,vel) > 0.08715560746  || projectile->type == TH_HAMMER_PROJECTILE )&& c->data[i].hasgem[j] ) //&& fn_angle(gemdir,vel) < fn_radians(90)
+                        if ( (fn_dot(gemdir,vel) > -0.15  || projectile->type == TH_HAMMER_PROJECTILE )&& c->data[i].hasgem[j] ) //&& fn_angle(gemdir,vel) < fn_radians(90)
                         {
                             th_Hitmarker hmarker;
                             hmarker.entity_pos_ref = NULL;

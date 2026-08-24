@@ -59,6 +59,9 @@ typedef struct
   th_EntityEdictFlags flags;
 }th_EntityCollisionEdict;
 
+
+typedef void (*th_entity_func)(th_Entity* entity,void* data);
+
 // void fn_freeGrid(fn_Grid* grid);
 void fn_createGrid(th_Allocator* alloc,fn_Grid* grid,th_Entity* entities,int entityCount,fn_vec3 cellsize,int cellcount);
 
@@ -74,5 +77,7 @@ void th_registerEntityGroup(th_EntityCollisionEdict e);
 th_Entity* th_collideWithEntitiesExclusionary(th_EntityEdictFlags flags,th_EntityEdictFlags eflags,th_Entity* e,float worldtime,fn_vec3* normal,bool* is_hit,int thread_id,float dt,fn_vec3* pos,float* time);
 th_Entity* th_collideWithEntities(th_EntityEdictFlags flags,th_Entity* e,float worldtime,fn_vec3* normal,bool* is_hit,int thread_id,float dt,fn_vec3* pos,float* time);
 th_Entity* th_traceWithEntitites(th_EntityEdictFlags flags,fn_vec3 start,fn_vec3 end,fn_vec3* normal,bool* is_hit,int thread_id,float dt,fn_vec3* pos,float* time,float radius);
+
+void th_applyFuncEntities(th_EntityEdictFlags flags,int thread_id,th_entity_func callback,void* callbackdata);
 
 void th_getEntitiesInRadius(th_EntityEdictFlags flags,fn_vec3 pos,float radius,int thread_id,float dt,int* count,th_Entity** eptr);

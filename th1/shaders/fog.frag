@@ -1171,6 +1171,8 @@ void main()
       float color_mult = mu;
       float optical_depth_add = alpha;
 
+      optical_depth = optical_depth*(1.0 - to_infinity) + to_infinity*fog_density*fog_distance;
+
       //for 0.0003
       // float color_mult = 0.3513;
       // float optical_depth_add = 0.432;

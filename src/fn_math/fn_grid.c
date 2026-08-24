@@ -584,6 +584,54 @@ void th_registerEntityGroup(th_EntityCollisionEdict e)
   edict_count++;
 }
 
+void th_applyFuncEntities(th_EntityEdictFlags flags,int thread_id,th_entity_func callback,void* callbackdata)
+{
+  float time_least = 1000;
+  bool hit_something = false;
+  th_Entity* closest_entity = NULL;
+
+  for (int i = 0 ; i < edict_count;i++)
+  {
+    th_EntityCollisionEdict edict = edicts[i];
+    if (!(flags & edict.flags) )
+    {
+      continue;
+    }
+
+
+    bool useray = false;
+    if (flags & TH_USE_RAY)
+    {
+      useray = true;
+    }
+    if (edict.grid == NULL)
+    {
+      bool collided = false;
+      th_Collision ret;
+      ret.time = 2;
+      int cindex = 0;
+      for (int j =0 ; j < *edict.entityCount ; j ++ )
+      {
+        //edict.entities[j]
+        callback(&edict.entities[j],callbackdata);
+      }
+
+
+    }
+    else
+    {
+      for (int j = 0 ; j < edict.grid->entityCount;j++)
+      {
+        //
+        callback(&edict.grid->entities[j],callbackdata);
+      }
+    }
+
+  }
+
+
+}
+
 th_Entity* th_collideWithEntities(th_EntityEdictFlags flags,th_Entity* e,float worldtime,fn_vec3* normal,bool* is_hit,int thread_id,float dt,fn_vec3* pos,float* time)
 {
   float time_least = 1000;

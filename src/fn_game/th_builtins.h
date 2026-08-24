@@ -103,3 +103,9 @@ fn_mat4 th_fadeinMatrix(float* value,float decay);
 fn_quat th_update_orient(fn_vec3* from_vec,fn_vec3 target_vec,float ang_spd_deg,float dt,fn_vec3* old_ups);
 
 void th_enactExplosion(fn_vec3 position,th_PlayerObject* playerstate,float dt,th_World* world,th_Entity* player,int thread_id,th_LightQuery* lq,th_Entity* dmg_entity,th_ImpactBuffered** impact_list_2d,int* impact_counts_2d);
+
+void th_killEverybody();
+
+void th_runKillTimer(float leadtime);
+
+th_timer_t th_getKillTimer();

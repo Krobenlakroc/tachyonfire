@@ -116,17 +116,28 @@ static void CentiPlotCourse(th_CentipedeGroup* c,fn_vec3 target,int master)
 
   int upend = (oend - ostart )*2 + 1;
 
+  if (agent->course_count - ostart > 0)
+  {
+    memmove ( &info->angles[0], &info->angles[ostart], sizeof(float)*((agent->course_count - ostart) ) );
 
-  memmove ( &info->angles[0], &info->angles[ostart], sizeof(float)*((agent->course_count - ostart) ) );
+    memmove ( &info->course[0], &info->course[ostart], sizeof(fn_vec3)*((agent->course_count - ostart)) );
+  }
 
-  memmove ( &info->course[0], &info->course[ostart], sizeof(fn_vec3)*((agent->course_count - ostart)) );
 
   //memmove ( &info->upvectors[0], &info->upvectors[upstart], sizeof(fn_vec3)*((agent->course_count*2 - upstart)) );
-
+  //assert(ostart > 0 && ostart < agent->course_count);
 
   //info->old_up = fn_NlerpVec3(info->upvectors[upindex],info->upvectors[upindex + 1],fmod(interp,0.5)*2);
 
   int diff = (oend - ostart);
+
+  //assert(diff > 0);
+
+  if (diff <= 0 || !(ostart > 0 && ostart < agent->course_count) )
+  {
+    return;
+  }
+
   int cprogdiff = agent->cprog;
   agent->cprog = 0;
   agent->course = info->course;
@@ -942,7 +953,7 @@ void th_centipedeUpdate(th_CentipedeGroup* c,float dt,fn_RawInput* input)
 
 
           fn_vec3 gemdir = fn_transformNormal(fn_createVec3(0,-1,0),c->transforms_body[j]);
-          bool gem_impacted = (fn_dot(gemdir,vel) > 0  || projectile->type == TH_HAMMER_PROJECTILE )&& c->agents[j].hasgem;
+          bool gem_impacted = (fn_dot(gemdir,vel) > -0.1  || projectile->type == TH_HAMMER_PROJECTILE )&& c->agents[j].hasgem;
 
           if (projectile->type == TH_HAMMER_PROJECTILE || gem_impacted)
           {
@@ -1123,7 +1134,34 @@ void th_centipedeUpdate(th_CentipedeGroup* c,float dt,fn_RawInput* input)
     }
     else if (info->state == TH_FOLLOW)
     {
-      if ((agent_end->cprog >= info->target_index &&  agent->cprog < agent_end->cprog) || th_time() - info->start_time > (20000.0/(info->config.speed/0.8))  )
+
+      int max_course_pos = MAX_COURSE_SIZE - 35;
+      //this shouldnt happen, but it does and its not worth hunting down the original cause
+      if (!(agent->cprog < agent_end->cprog) )
+      {
+        printf("CPROG OUT OF ORDER\n");
+        //reset the centi
+        agent->cprog = agent->cprog - agent_end->cprog;
+        if (agent->cprog < 4)
+        {
+          agent->cprog = 4;
+        }
+
+        agent->interp = 0.0;
+        //stepforward(agent,0,1000);
+
+        //back the centipede up, march segments forward
+        for (int j = info->start + 1;j < info->start + info->count;j++)
+        {
+          c->agents[j].cprog = agent->cprog;
+          c->agents[j].interp = 0;
+          stepforward(&c->agents[j],c->config.scale*150*(j - info->start),1000);
+        }
+
+        info->start_time = th_time();
+        CentiPlotCourse(c,target,i);
+      }
+      else if ( agent->cprog < agent_end->cprog && (agent_end->cprog > max_course_pos || (agent_end->cprog >= info->target_index ) || th_time() - info->start_time > (20000.0/(info->config.speed/0.8)))  )
       {
         //plot new course
         info->start_time = th_time();

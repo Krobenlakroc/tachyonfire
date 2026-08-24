@@ -394,7 +394,7 @@ void th_createMainMenu(th_UIlayout* layout,th_Character* cmap,fn_vec2 screenSize
 
     fn_vec2 spos = fn_multVec2(fn_createVec2(0.46,phi),screenSize);
     float y2 =  spos.y - 0.8*64.0*((th_getAspectScale()));
-    th_createUIElementText(&layout->elements[layout->element_count],"V1.3",fn_createVec2(spos.x,y2),0.333,fn_createVec3(0,0.8,1.0),cmap);
+    th_createUIElementText(&layout->elements[layout->element_count],"V1.4",fn_createVec2(spos.x,y2),0.333,fn_createVec3(0,0.8,1.0),cmap);
     layout->element_count++;
 
     fn_vec3 hcolor = fn_createVec3(1,0.8,0);

@@ -20,12 +20,6 @@ uniform float horizon_height = 6372e3;
 
 uniform vec3 uMoonPos = vec3(0.4,1.0,0.7);
 
-
-uniform vec3  mountain_color   = vec3(0.03, 0.035, 0.08); // base unlit rock colour
-uniform float mountain_height  = 0.6;   // amplitude of the ridge line (in dir.y units)
-uniform float mountain_horizon = -0.1;  // dir.y around which the range is centered
-uniform float mountain_seed    = 0.0;    // change to get a different range layout
-
 const float cloud_dens = 0.8;
 
 const float noise_lower = 0.5;
@@ -42,7 +36,7 @@ vec2 rsi(vec3 r0, vec3 rd, float sr) {
     if (d < 0.0) return vec2(1e5,-1e5);
     return vec2(
         (-b - sqrt(d))/(2.0*a),
-                (-b + sqrt(d))/(2.0*a)
+        (-b + sqrt(d))/(2.0*a)
     );
 }
 
@@ -73,10 +67,10 @@ float perlinNoise(vec3 p) {
                 dot(hash3(i + vec3(1,0,0)) - 0.5, f - vec3(1,0,0)), u.x),
             mix(dot(hash3(i + vec3(0,1,0)) - 0.5, f - vec3(0,1,0)),
                 dot(hash3(i + vec3(1,1,0)) - 0.5, f - vec3(1,1,0)), u.x), u.y),
-               mix(mix(dot(hash3(i + vec3(0,0,1)) - 0.5, f - vec3(0,0,1)),
-                       dot(hash3(i + vec3(1,0,1)) - 0.5, f - vec3(1,0,1)), u.x),
-                   mix(dot(hash3(i + vec3(0,1,1)) - 0.5, f - vec3(0,1,1)),
-                       dot(hash3(i + vec3(1,1,1)) - 0.5, f - vec3(1,1,1)), u.x), u.y), u.z);
+           mix(mix(dot(hash3(i + vec3(0,0,1)) - 0.5, f - vec3(0,0,1)),
+                   dot(hash3(i + vec3(1,0,1)) - 0.5, f - vec3(1,0,1)), u.x),
+               mix(dot(hash3(i + vec3(0,1,1)) - 0.5, f - vec3(0,1,1)),
+                   dot(hash3(i + vec3(1,1,1)) - 0.5, f - vec3(1,1,1)), u.x), u.y), u.z);
 }
 
 float worleyNoise(vec3 p) {
@@ -148,7 +142,7 @@ float beerPowder(float opticalDepth) {
 // We march a short ray toward uSunPos and accumulate density.
 // ---------------------------------------------------------------------------
 float cloudShadowTransmittance(vec3 pos, vec3 sunDir,
-                               float cloudBase, float cloudTop,int iters_noise) {
+                                float cloudBase, float cloudTop,int iters_noise) {
     const int numSteps = 12;
     float stepLen = (cloudTop - cloudBase) / float(numSteps);
     float optDepth = 0.0;
@@ -159,21 +153,21 @@ float cloudShadowTransmittance(vec3 pos, vec3 sunDir,
         float r = length(samplePos);
         //if (r < cloudBase || r > cloudTop) continue;
 
-        //         // Project onto sphere surface for noise lookup
-        //         vec3 spherePos = normalize(samplePos) * cloudBase;
-        //         float n = fbm(spherePos * noiseScale);
-        //         float density = smoothstep(0.50, 0.60, n);
-        //         optDepth += density * stepLen * 1e-4; // scale to plausible optical depth
+//         // Project onto sphere surface for noise lookup
+//         vec3 spherePos = normalize(samplePos) * cloudBase;
+//         float n = fbm(spherePos * noiseScale);
+//         float density = smoothstep(0.50, 0.60, n);
+//         optDepth += density * stepLen * 1e-4; // scale to plausible optical depth
 
         vec3 spherePos = normalize(samplePos) * cloudBase;
 
         float density_scale = (normalize(samplePos).y) ;
-        //         float cloudNoise = fbm(spherePos * 0.0000008 *density_scale*cloud_dens ); // Scale for cloud pattern size
-        //
-        //
-        //         // Threshold and shape the clouds
-        //         float cloudDensity = smoothstep(noise_lower, noise_higher, cloudNoise);
-        //         cloudDensity *= smoothstep(0.0, 0.1, cloudNoise) * smoothstep(1.0, 0.9, cloudNoise);
+//         float cloudNoise = fbm(spherePos * 0.0000008 *density_scale*cloud_dens ); // Scale for cloud pattern size
+//
+//
+//         // Threshold and shape the clouds
+//         float cloudDensity = smoothstep(noise_lower, noise_higher, cloudNoise);
+//         cloudDensity *= smoothstep(0.0, 0.1, cloudNoise) * smoothstep(1.0, 0.9, cloudNoise);
         float cloudDensity = 0.0;
 
         for (int i = 0 ; i < iters_noise;i++)
@@ -190,7 +184,7 @@ float cloudShadowTransmittance(vec3 pos, vec3 sunDir,
     }
 
     return exp(-optDepth);
-                               }
+}
 
 // ---------------------------------------------------------------------------
 // renderClouds – now correctly places clouds on the TOP of the sky dome.
@@ -241,8 +235,8 @@ vec4 renderClouds(vec3 r0, vec3 rd, vec3 pSun,float thickness,int iters_noise,ve
 
 
     // Threshold and shape the clouds
-    //     float cloudDensity = smoothstep(noise_lower, noise_higher, cloudNoise);
-    //     cloudDensity *= smoothstep(0.0, 0.1, cloudNoise) * smoothstep(1.0, 0.9, cloudNoise);
+//     float cloudDensity = smoothstep(noise_lower, noise_higher, cloudNoise);
+//     cloudDensity *= smoothstep(0.0, 0.1, cloudNoise) * smoothstep(1.0, 0.9, cloudNoise);
     float cloudDensity = 0.0;
 
     for (int i = 0 ; i < iters_noise;i++)
@@ -262,15 +256,15 @@ vec4 renderClouds(vec3 r0, vec3 rd, vec3 pSun,float thickness,int iters_noise,ve
     if (cloudDensity < 0.001) return vec4(0.0);
 
     // Calculate lighting
-    //     vec3 sunDir = normalize(pSun);
-    //     float sunDot = dot(normalize(samplePos), sunDir);
-    //     float lighting = max(0.3, sunDot * 0.7 + 0.3); // Ambient + diffuse
-    //
-    //     // Cloud color
-    //     vec3 cloudColor = vec3(1.0, 1.0, 1.0) * lighting;
-    //     float cloudAlpha = cloudDensity * 0.8;
-    //
-    //     return vec4(cloudColor, cloudAlpha);
+//     vec3 sunDir = normalize(pSun);
+//     float sunDot = dot(normalize(samplePos), sunDir);
+//     float lighting = max(0.3, sunDot * 0.7 + 0.3); // Ambient + diffuse
+//
+//     // Cloud color
+//     vec3 cloudColor = vec3(1.0, 1.0, 1.0) * lighting;
+//     float cloudAlpha = cloudDensity * 0.8;
+//
+//     return vec4(cloudColor, cloudAlpha);
 
 
     // ---------------------------------------------------------------------------
@@ -323,7 +317,7 @@ vec4 renderClouds(vec3 r0, vec3 rd, vec3 pSun,float thickness,int iters_noise,ve
     // Alpha: how opaque this cloud patch is to the sky behind it.
     //float alpha = smoothstep(0.0, 0.3, cloudDensity) * 0.92;
 
-    float cloudAlpha = shadowT * cloudDensity * 0.8;
+     float cloudAlpha = shadowT * cloudDensity * 0.8;
 
     return vec4(cloudColor, cloudAlpha);
 }
@@ -436,65 +430,6 @@ vec4 moon(vec3 dir) {
     return vec4(0.0);
 }
 
-
-float mountainRidgeHeight(float angle) {
-    // Broad, slow-varying range shape.
-    float far  = fbm2d(vec2(angle * 1.5, mountain_seed), 5);
-    // Sharper, higher-frequency detail peaks layered on top.
-    float near = fbm2d(vec2(angle * 6.0 + 41.7, mountain_seed * 1.37), 4);
-
-    float ridge = far * 0.7 + near * 0.3;
-    // Bias toward sharper peaks and deeper valleys instead of a flat blend.
-    ridge = pow(ridge, 1.6);
-
-    return max(mountain_horizon + ridge * mountain_height,0.01);
-}
-
-vec3 renderMountains(vec3 dir, vec3 skyColor, vec3 sunDir) {
-    // Cheap reject: well above the highest possible peak, just return sky.
-    if (dir.y > mountain_horizon + mountain_height * 1.05) return skyColor;
-
-    float angle = atan(dir.x, dir.z)  ;
-    float ridgeY = mountainRidgeHeight(-abs(angle) + 3.14159*0.5 );
-
-    // Antialiased silhouette edge: 0 below the ridge (mountain), 1 above (sky).
-    float edge = smoothstep(ridgeY - 0.0015, ridgeY + 0.0015, dir.y);
-    if (edge >= 1.0) return skyColor;
-
-    // Simple distance/atmospheric-haze cue: peaks near the ridge line pick up
-    // a bit of the sky colour behind them (aerial perspective), while deep
-    // valleys stay closer to the base rock colour.
-//                                    float depthCue = clamp((dir.y - ridgeY) * 25.0 + 1.0, 0.0, 1.0);
-    float depthBelowRidge = max(ridgeY - dir.y, 0.0);
-
-    float depthBelowRidgeInv = 1.0 - max(ridgeY - dir.y, 0.0);
-
-    // Smooth exponential haze/glow falloff. A linear ramp gives a visible
-    // band where it hits zero; exponential decay tapers continuously with
-    // no seam, which is what was causing the jank in the rim light.
-    float depthCue = exp(-depthBelowRidge * 18.0);
-    float depthCueRidge = clamp((dir.y - ridgeY) * 25.0 + 1.0, 0.0, 1.0);
-    depthCueRidge = depthCueRidge * depthCueRidge;
-    float depthMountain = pow(exp(-depthBelowRidge),8.0);
-    vec3 hazyRock = mix(mountain_color * depthMountain, skyColor, 0.2 * depthCueRidge);
-
-    // Rim/back-light: brighten the skyline when the sun sits low and near
-    // this azimuth, like peaks catching sunrise/sunset light.
-    float sunAngle   = atan(sunDir.x, sunDir.z);
-    float azCloseness = 1.0 - smoothstep(0.0, 0.35, abs(mod(angle - sunAngle + PI, 2.0*PI) - PI));
-    float lowSun      = smoothstep(0.0, 0.25, 1.0 - abs(sunDir.y - 0.05));
-    // Gate by depthCue too: without this the rim light ignores how far below
-    // the ridge the fragment is, producing a vertical light column straight
-    // down through the whole mountain body wherever azimuth lines up with
-    // the sun. depthCue is already ~0 more than ~0.04 units below the ridge,
-    // so this confines the highlight to the skyline itself.
-    vec3 rimLight = sun_color * sun_intensity * 0.02 * azCloseness * lowSun * depthCue;
-
-    vec3 mountainColorFinal = hazyRock + rimLight;
-
-    return mix(mountainColorFinal, skyColor, edge);
-}
-
 vec3 atmosphere(vec3 r, vec3 r0, vec3 pSun, float iSun, float rPlanet, float rAtmos, vec3 kRlh, float kMie, float shRlh, float shMie, float g) {
     pSun = normalize(pSun);
     r    = normalize(r);
@@ -590,6 +525,20 @@ void main(void)
     vec3 color = atmosphereWithMoon(
         dir,
         vec3(0, horizon_height, 0),
+        uSunPos,
+        sun_intensity,
+        6371e3,
+        6471e3,
+        rayleigh,
+        21e-6,
+        8e3,
+        1.2e3,
+        0.758
+    );
+
+    vec3 color_mirrored = atmosphereWithMoon(
+        dir*vec3(-1,1,-1),
+        vec3(0, horizon_height, 0),
                                     uSunPos,
                                     sun_intensity,
                                     6371e3,
@@ -599,20 +548,6 @@ void main(void)
                                     8e3,
                                     1.2e3,
                                     0.758
-    );
-
-    vec3 color_mirrored = atmosphereWithMoon(
-        dir*vec3(-1,1,-1),
-                                            vec3(0, horizon_height, 0),
-                                            uSunPos,
-                                            sun_intensity,
-                                            6371e3,
-                                            6471e3,
-                                            rayleigh,
-                                            21e-6,
-                                            8e3,
-                                            1.2e3,
-                                            0.758
     );
 
 
@@ -625,7 +560,7 @@ void main(void)
     }
     if (cloud_enable == 3.0)
     {
-        vec4 clouds = renderClouds(vec3(0, 6372e3, 0), dir, uSunPos,0.4e3,3,color_mirrored);
+        vec4 clouds = renderClouds(vec3(0, 6372e3, 0), dir, uSunPos,0.4e3,10,color_mirrored);
         // Clouds composite OVER the atmosphere (they're in the sky, not below it).
         color = mix(color, clouds.rgb, clouds.a);
     }
@@ -635,13 +570,6 @@ void main(void)
 
         // Composite clouds over atmosphere
         color = mix(color, clouds.rgb, clouds.a);
-    }
-
-    // Mountains are foreground geometry, so they composite last and occlude
-    // everything (sky + clouds) below the ridge line.
-    if (cloud_enable == 3.0)
-    {
-        color = renderMountains(dir, color, normalize(uSunPos));
     }
 
     fragColor = vec4(color, 1.0);

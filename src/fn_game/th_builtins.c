@@ -37,6 +37,10 @@ static float violence_inst = 0.0;
 
 static pthread_mutex_t violence_mutex;
 
+static th_timer_t killtimer = -1.0;
+static float leadtime_local = 0.0;
+static bool forcewin = false;
+
 void th_resetGameplay()
 {
   violence_p = 0.0;
@@ -47,6 +51,28 @@ void th_resetGameplay()
   completiontimer = 0;
   first_victory_check = true;
   unwinable = false;
+  killtimer = -1.0;
+  leadtime_local = 0;
+  forcewin = false;
+}
+
+void th_runKillTimer(float leadtime)
+{
+  leadtime_local = leadtime;
+  if (killtimer == -1.0)
+  {
+    killtimer = th_time();
+  }
+  else if (th_time() > killtimer + leadtime)
+  {
+    th_killEverybody();
+    forcewin = true;
+  }
+}
+
+th_timer_t th_getKillTimer()
+{
+  return killtimer + leadtime_local;
 }
 
 float th_getViolenceLevel()
@@ -126,7 +152,7 @@ th_VictoryStats th_checkVictory(th_PlayerObject* player,th_timer_t leveltime,flo
     }
   }
   th_VictoryStats ret;
-  ret.victory = player->hp > 0 && num_enemies == 0 && !unwinable;
+  ret.victory = ((player->hp > 0 && num_enemies == 0) || forcewin) && !unwinable;
   ret.damage_taken = player->hp;
   ret.completiontime = completiontimer;
   ret.airtime = airtimer/leveltime;
@@ -240,6 +266,40 @@ fn_vec3 th_computeVictoryInterps(fn_vec3 floats,float bronze,float silver, float
   return output;
 
 
+}
+
+static th_Entity* master_entity_killer = NULL;
+
+void applydamagecallback(th_Entity* e,void* data)
+{
+  if (!e->alive)
+  {
+    return;
+  }
+  e->impact = true;
+  th_Impact impact = {(void*)(master_entity_killer),e->aabb.position};
+  for (int i = 0 ; i < 4;i++)
+  {
+    e->impacts[i] = impact;
+  }
+  e->impact_count = 4;
+}
+
+void th_killEverybody()
+{
+  if (master_entity_killer == NULL)
+  {
+    master_entity_killer = malloc(sizeof(th_Entity));
+    *master_entity_killer = TH_DEFAULT_ENTITY;
+    master_entity_killer->aabb.position = fn_createVec3(10000000,10000000,10000000);
+    master_entity_killer->aabb.hwidth = fn_createVec3(40,40,40);
+    master_entity_killer->velocity = fn_createVec3s(0);
+    master_entity_killer->grounded = false;
+    master_entity_killer->collided = false;
+    master_entity_killer->aabb.mode = SPHERE;
+    master_entity_killer->type = TH_HAMMER_PROJECTILE;
+  }
+  th_applyFuncEntities(TH_ENEMY,0,applydamagecallback,NULL);
 }
 
 fn_vec3 th_sampleRandomSphere()
