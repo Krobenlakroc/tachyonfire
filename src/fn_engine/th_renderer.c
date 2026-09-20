@@ -73,9 +73,12 @@ void th_initRendererState(th_RendererState* state)
     state->cubePositionsCount = 0;
     state->cubedims = 512;
     state->cubeLODS = 5.0;
+/*
+    state->zNear = 5.0;
+    state->zFar = 20000;*/
 
     state->zNear = 5.0;
-    state->zFar = 20000;
+    state->zFar = 28000;
 
     state->screen_dims = (fn_vec2){ .x = 1920.0f, .y = 1080.0f };
 

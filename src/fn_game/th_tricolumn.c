@@ -382,11 +382,29 @@ static void th_triColumnPose(th_MotionState mstate,th_TricolumnGroup* c,int i,fl
     th_triColumnArmMatrices(c,i);
 }
 // a->leg_directions[j]
+
+
+static fn_vec3 gettangent(fn_vec3 look)
+{
+    fn_vec3 up_decal = fn_createVec3(0,-1,0);
+    if (fn_almostequalVec3(fn_createVec3(0,-1,0),look,0.001) || fn_almostequalVec3(fn_createVec3(0,1,0),look,0.001))
+    {
+        up_decal = fn_createVec3(1,0,0);
+    }
+    return fn_normalizeVec3(fn_cross(up_decal,look));
+}
+
 static bool update_orient_direction(fn_vec3* history,fn_vec3 target_vector,float motion_angular_speed_deg,float dt)
 {
     fn_vec3 from_vector = *history;//
 
-    fn_vec3 axis = fn_normalizeVec3(fn_cross(from_vector,target_vector));
+    fn_vec3 cross = fn_cross(from_vector,target_vector);
+    if (fn_length(cross) < 0.01) // vectors (anti)parallel
+    {
+        cross = fn_cross(from_vector, gettangent(from_vector));
+    }
+
+    fn_vec3 axis = fn_normalizeVec3(cross);
 
     float angle_to_rot = -acosf(fn_clamp(fn_dot(from_vector,target_vector),-1,1));
     float delta_angle = -dt*fn_radians(motion_angular_speed_deg);
@@ -419,7 +437,16 @@ static bool tricolumnInterpState(th_TricolumnGroup* c,int i,th_MotionState* a,th
 
     float dx_dt = 1.0/22.0; //how fast to retract and extend
 
-    const float motion_angular_speed_deg = 0.027;
+    float motion_angular_speed_deg = 0.027;
+
+    if (c->fastmode[i])
+    {
+        dt_motion *= 0.25;
+
+        dx_dt *= 4.0;
+
+        motion_angular_speed_deg *= 4.0;
+    }
 
     bool play_begin_sound = false;
     if (state_machine->alpha == 0.0)
@@ -616,7 +643,7 @@ void th_tricolumnSetCourse(th_TricolumnGroup* c,int i,fn_vec3* target_points,int
     }
 }
 
-void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,fn_vec3* positions,float* times,th_LevelState* levelstate)
+void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,fn_vec3* positions,float* times,bool* fastmode,th_LevelState* levelstate)
 {
     c->alloc = alloc;
     c->entities_gems = th_alloc(alloc,sizeof(th_Entity)*count*7);
@@ -643,11 +670,14 @@ void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,f
     c->foot_dir = th_alloc(alloc,sizeof(fn_vec3)*count*3);
     c->old_up_foot = th_alloc(alloc,sizeof(fn_vec3)*count*3);
 
+    c->fastmode = fastmode;
+
     for (int i = 0 ; i < count;i++)
     {
         c->data[i].spawn_heartbeat_index = 0;
         c->data[i].interp_state_machine.alpha = 0.0;
         c->data[i].interp_state_machine.frame = 0;
+        c->data[i].interp_state_machine.reverse = false;
 
         c->data[i].motion_states = NULL;
         c->data[i].num_motion_states = 0;
@@ -1040,11 +1070,34 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
                 {
                     int frame = c->data[i].interp_state_machine.frame;
 
-                    if (frame >= c->data[i].num_motion_states - 1)
+                    // printf("%s %i %i/%i %f\n",c->data[i].interp_state_machine.reverse ? "Reverse" : "Forward",i,frame,c->data[i].num_motion_states - 1,c->data[i].interp_state_machine.alpha);
+
+                    if (frame >= c->data[i].num_motion_states - 1 && !c->data[i].interp_state_machine.reverse)
                     {
                         th_triColumnPose(c->data[i].motion_states[c->data[i].num_motion_states - 1],c,i,dt,world);
 
                         th_deepCopyMotionState(&c->data[i].motion_state_interp,&c->data[i].motion_states[c->data[i].num_motion_states - 1]);
+
+                        if (c->fastmode[i])
+                        {
+
+                            c->data[i].interp_state_machine.reverse = true;
+                            c->data[i].interp_state_machine.frame = c->data[i].num_motion_states - 2;
+                            c->data[i].interp_state_machine.alpha = 1.0;
+                        }
+                    }
+                    else if (c->data[i].interp_state_machine.reverse && frame < 0 )
+                    {
+                        th_triColumnPose(c->data[i].motion_states[0],c,i,dt,world);
+
+                        th_deepCopyMotionState(&c->data[i].motion_state_interp,&c->data[i].motion_states[0]);
+
+                        if (c->fastmode[i])
+                        {
+                            c->data[i].interp_state_machine.reverse = false;
+                            c->data[i].interp_state_machine.frame = 0;
+                            c->data[i].interp_state_machine.alpha = 0.0;
+                        }
                     }
                     else
                     {
@@ -1057,13 +1110,38 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
                             interp_dt = 0.0;
                         }
 
-                        bool done = tricolumnInterpState(c,i,&c->data[i].motion_states[frame],&c->data[i].motion_states[frame + 1],&c->data[i].motion_state_interp,interp_dt,&c->data[i].interp_state_machine);
-                        if (done)
+                        if (c->data[i].interp_state_machine.reverse)
                         {
-                            c->data[i].interp_state_machine.frame = c->data[i].interp_state_machine.frame + 1;
-                            c->data[i].interp_state_machine.alpha = 0.0;
-                            //printf("Frame %i\n",c->data[i].interp_state_machine.frame);
+
+                            c->data[i].interp_state_machine.alpha = 1.0 - c->data[i].interp_state_machine.alpha;
+                            c->data[i].interp_state_machine.alpha = fn_clamp(c->data[i].interp_state_machine.alpha,0.0,1.0);
+
+                            bool done = tricolumnInterpState(c,i,&c->data[i].motion_states[frame + 1],&c->data[i].motion_states[frame],&c->data[i].motion_state_interp,interp_dt,&c->data[i].interp_state_machine);
+
+                            c->data[i].interp_state_machine.alpha = 1.0 - c->data[i].interp_state_machine.alpha;
+                            c->data[i].interp_state_machine.alpha = fn_clamp(c->data[i].interp_state_machine.alpha,0.0,1.0);
+
+                            if (done)
+                            {
+                                c->data[i].interp_state_machine.frame = c->data[i].interp_state_machine.frame - 1;
+                                c->data[i].interp_state_machine.alpha = 1.0;
+                                //printf("Frame %i\n",c->data[i].interp_state_machine.frame);
+                            }
+
+
                         }
+                        else
+                        {
+                            bool done = tricolumnInterpState(c,i,&c->data[i].motion_states[frame],&c->data[i].motion_states[frame + 1],&c->data[i].motion_state_interp,interp_dt,&c->data[i].interp_state_machine);
+                            if (done)
+                            {
+                                c->data[i].interp_state_machine.frame = c->data[i].interp_state_machine.frame + 1;
+                                c->data[i].interp_state_machine.alpha = 0.0;
+                                //printf("Frame %i\n",c->data[i].interp_state_machine.frame);
+                            }
+                        }
+
+
 
                         //printf("%i %i %i\n",c->data[i].interp_state_machine.states[0],);
 
@@ -1089,12 +1167,21 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
                     if (c->data[i].state == TRICOL_EXPLORE)
                     {
                         //no new contact found, pick a different pivot direction
-                        th_playSoundIfNotPlaying(&c->data[i].spawn_sound,c->data[i].position,sound_tricol_givebirth,1.0 );
-                        a_setVSRolloff(c->data[i].spawn_sound,0.2);
-                        c->data[i].state = TRICOL_SPAWN;
-                        c->data[i].orient_trgt_basedir = sample_direction(fn_createVec3(0,0,-1),fn_radians(179.0));
-                        c->data[i].spawntimer = th_time() + SPAWN_DURATION;
-                        c->data[i].spawn_heartbeat = th_time() + 200;
+
+                        if (!c->fastmode[i])
+                        {
+                            th_playSoundIfNotPlaying(&c->data[i].spawn_sound,c->data[i].position,sound_tricol_givebirth,1.0 );
+                            a_setVSRolloff(c->data[i].spawn_sound,0.2);
+                            c->data[i].state = TRICOL_SPAWN;
+                            c->data[i].orient_trgt_basedir = sample_direction(fn_createVec3(0,0,-1),fn_radians(179.0));
+                            c->data[i].spawntimer = th_time() + SPAWN_DURATION;
+                            c->data[i].spawn_heartbeat = th_time() + 200;
+                        }
+                        else
+                        {
+                            c->data[i].spawntimer = th_time() + SPAWN_DURATION;
+                        }
+
                     }
 
                 }
@@ -1450,6 +1537,15 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
         if (c->data[i].state != TRICOL_GIBBED)
         {
 
+            if (c->fastmode[i] && fn_distance2(c->data[i].position,c->levelstate->player_e.aabb.position) < 1500*1500 )
+            {
+                if (c->data[i].state == TRICOL_EXPLORE)
+                {
+                    c->data[i].aggrotimer = th_time() - 250;
+                    th_playSoundIfNotPlaying(&c->data[i].lazer,c->data[i].position,sound_laser_tricol,1.0 );
+                }
+            }
+
             th_pushOccluderFrame(fn_createVec4Vec3(c->data[i].position,300.0));
 
             for (int j = 0 ; j < 3;j++)
@@ -1528,7 +1624,7 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
 
                             if (c->data[i].hasgem[j] && c->data[i].gemhealth[j] <= 0.0)
                             {
-                                if (c->data[i].state == TRICOL_EXPLORE)
+                                if (c->data[i].state == TRICOL_EXPLORE && !c->fastmode[i])
                                 {
                                     c->data[i].aggrotimer = th_time();
                                     th_playSoundIfNotPlaying(&c->data[i].lazer,c->data[i].position,sound_laser_tricol,1.0 );

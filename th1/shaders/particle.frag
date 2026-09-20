@@ -109,9 +109,9 @@ layout (std140 , binding = 4) uniform Offsets_buffer //size of grid
 
 layout (std140 , binding = 0) uniform EnvBoxes
 {
-  vec4 EnvBoxPos[32];// 0
-  vec4 EnvBoxMin[32];// size*16
-  vec4 EnvBoxMax[32];//size * 16*2
+  vec4 EnvBoxPos[55];// 0
+  vec4 EnvBoxMin[55];// size*16
+  vec4 EnvBoxMax[55];//size * 16*2
   int EnvBoxCount;//size*16*3
   //total size is size*16*3 + 4
 };

@@ -6,7 +6,7 @@
 #include "th_allocator.h"
 
 
-#define TH_HARMONICS_MAX_COUNT 1000000
+#define TH_HARMONICS_MAX_COUNT 1200000
 
 typedef struct
 {

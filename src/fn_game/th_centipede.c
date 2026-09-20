@@ -1161,7 +1161,7 @@ void th_centipedeUpdate(th_CentipedeGroup* c,float dt,fn_RawInput* input)
         info->start_time = th_time();
         CentiPlotCourse(c,target,i);
       }
-      else if ( agent->cprog < agent_end->cprog && (agent_end->cprog > max_course_pos || (agent_end->cprog >= info->target_index ) || th_time() - info->start_time > (20000.0/(info->config.speed/0.8)))  )
+      else if ( agent->cprog < agent_end->cprog && (agent_end->cprog > max_course_pos || (agent_end->cprog >= info->target_index ) || th_time() - info->start_time > (info->config.retrack_interval/(info->config.speed/0.8)))  )
       {
         //plot new course
         info->start_time = th_time();

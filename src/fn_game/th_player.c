@@ -36,7 +36,8 @@ char* level_number,fn_vec3* levelcolorptr,char* gem_cap_number,th_LevelState* le
 
   //obj->level_weapon[TH_MACHINEGUN] = 3;
   //obj->level_weapon[TH_SHOTGUN] = 2;
-  //obj->level_weapon[TH_HAMMER] = 2;
+   // obj->level_weapon[TH_HAMMER] = 3;
+   // obj->gem_count[TH_HAMMER] = 100;
 
   obj->screenshake_f = 0;
   obj->screenshake_t = 0;
@@ -237,7 +238,7 @@ void th_incrementPlayerGem(th_PlayerObject* obj)
   {
     obj->gem_count[selected_weapon] = obj->gem_count[selected_weapon] + 1;
   }
-  if (obj->level_weapon[selected_weapon] > 1)
+  else if (obj->level_weapon[selected_weapon] > 1)
   {
     obj->gem_count[selected_weapon] = obj->gem_count[selected_weapon] + 3;
   }

@@ -16,6 +16,7 @@ typedef struct
   float spawn_speed;
   float turn_rate;
   float gem_health;
+  float retrack_interval;
 }th_CentiConfig;
 
 typedef enum

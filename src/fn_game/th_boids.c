@@ -387,6 +387,8 @@ void thread_boidscompute( void* id)
     //fn_vec3 r5 = fn_boidGotoPlace(&game->skulls[i],fn_createVec3(100,-FN_UNIT*5,0),0.05,-1.f/100.f);
     fn_vec3 r5 = boids->levelstate->centipede == NULL ? fn_createVec3s(0) : fn_boidAvoidAgents(boids->levelstate->centipede,boids->levelstate->centipede->count,&entities[i],seperation*0.25,directional);
 
+
+
     th_EyeballGroup* eyeptr = boids->levelstate->eyeball;
     fn_vec3 r6 = eyeptr == NULL ? fn_createVec3s(0) :  fn_boidAvoidEyeballs(eyeptr,&entities[i],seperation*0.25,directional,1.0);
 
@@ -398,6 +400,8 @@ void thread_boidscompute( void* id)
 
     eyeptr = boids->levelstate->eyeball_super;
     fn_vec3 r9 = eyeptr == NULL ? fn_createVec3s(0) :  fn_boidAvoidEyeballs(eyeptr,&entities[i],seperation*0.25,directional,1.5*1.5);
+
+    fn_vec3 r10 = boids->levelstate->centipede_fast == NULL ? fn_createVec3s(0) : fn_boidAvoidAgents(boids->levelstate->centipede_fast,boids->levelstate->centipede_fast->count,&entities[i],seperation*0.25,directional);
 
     if (colCount != 0)
     {
@@ -427,6 +431,7 @@ void thread_boidscompute( void* id)
     add = fn_addVec3(add,r7);
     add = fn_addVec3(add,r8);
     add = fn_addVec3(add,r9);
+    add = fn_addVec3(add,r10);
 
     if (colCount != 0)
     {

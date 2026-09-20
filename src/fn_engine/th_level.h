@@ -125,6 +125,7 @@ typedef struct th_LevelState
   th_TutorialObject* tutorial;
   th_LifeSphere* lifesphere;
   th_Question* question;
+  th_CentipedeGroup* centipede_fast;
 
   //player physics
   th_Entity player_e;

@@ -240,6 +240,9 @@ void th_hammerUpdate(th_HammerObject* object,float dt,fn_RawInput* input,fn_vec3
 
   }
 
+  int totaldmgcount = 0;
+  bool sledge_impacted = false;
+
   if (!object->is_held_sledge)
   {
     if (th_time() - object->time_fired_sledge < 320)
@@ -331,8 +334,8 @@ void th_hammerUpdate(th_HammerObject* object,float dt,fn_RawInput* input,fn_vec3
 
       if (impacted)
       {
-        object->levelstate->player->gem_count[TH_HAMMER] = 0;
-        object->levelstate->player->level_weapon[TH_HAMMER] = 1;
+        sledge_impacted = true;
+
         {
           a_VirtualSource* s = a_playVirtualSource(43,-1,object->sledge_position,NULL );
           a_setVSLoop(s,false);
@@ -408,7 +411,7 @@ void th_hammerUpdate(th_HammerObject* object,float dt,fn_RawInput* input,fn_vec3
           object->sledge_entity.velocity = impact_normal;
 
 
-
+          totaldmgcount += dmgcount;
 
           for (int k = 0; k < dmgcount; k++) {
 
@@ -455,6 +458,28 @@ void th_hammerUpdate(th_HammerObject* object,float dt,fn_RawInput* input,fn_vec3
       }
     }
 
+    if (totaldmgcount >= 6 && sledge_impacted)
+    {
+
+
+      int start_gem = object->levelstate->player->gem_count[TH_HAMMER];
+      if (start_gem < 60)
+      {
+
+        object->levelstate->player->level_weapon[TH_HAMMER] = 1;
+        object->levelstate->player->gem_count[TH_HAMMER] = 0;
+      }
+      else
+      {
+        object->levelstate->player->gem_count[TH_HAMMER] = object->levelstate->player->gem_count[TH_HAMMER] - 60;
+      }
+
+
+
+
+
+    }
+
 
     if (th_time() - object->sledge_impact_timer > 1000 && object->sledge_impact )
     {
@@ -462,6 +487,9 @@ void th_hammerUpdate(th_HammerObject* object,float dt,fn_RawInput* input,fn_vec3
       object->sledge_fly = false;
       object->sledge_impact = false;
       object->time_fired_sledge = th_time() - 5000.0;
+
+
+
 
     }
     else if (object->sledge_impact)

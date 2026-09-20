@@ -4,7 +4,7 @@
 #include "r_shader.h"
 #include "th_gpu.h"
 
-#define TH_MAX_CUBEMAPS 32
+#define TH_MAX_CUBEMAPS 55
 
 GLuint th_createCubemap(GLfloat** faces,int dimension);
 void th_saveCubemap(GLfloat** faces,int dimension,const char* filename);

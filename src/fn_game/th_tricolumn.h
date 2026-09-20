@@ -42,6 +42,7 @@ typedef struct
 
     float alpha;
     int frame;
+    bool reverse;
 }th_TricolumnInterpData;
 
 typedef struct
@@ -155,11 +156,13 @@ typedef struct
     fn_vec3* foot_dir;
     fn_vec3* old_up_foot;
 
+    bool* fastmode;
+
 }th_TricolumnGroup;
 
 
 void th_tricolumnSetCourse(th_TricolumnGroup* c,int i,fn_vec3* target_points,int target_count);
 
-void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,fn_vec3* positions,float* times,th_LevelState* levelstate);
+void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,fn_vec3* positions,float* times,bool* fastmode,th_LevelState* levelstate);
 
 void th_tricolumnUpdate(th_TricolumnGroup* c,float dt);

@@ -154,6 +154,8 @@ void th_restart_level_callback(void* data)
   th_RendererState* state = (th_RendererState*)data;
   state->th_load_new_level = true;
   state->th_respawn_flag = true;
+
+  th_uiNagbar("Loading.....",fn_createVec2(0,32),1.0,1);
 }
 
 
@@ -1455,7 +1457,7 @@ void th_initRenderingLevel(bool sharm, bool iter,th_RendererState* state)
     EnvBoxMax_uniform[i] = fn_vec3Tovec4(state->level.cube_maxs[i],0.0);
   }
 
-  if (state->level.cube_count > 32)
+  if (state->level.cube_count > TH_MAX_CUBEMAPS)
   {
     printf("ERROR, too many cubemaps!\n");
     exit(0);
@@ -3220,7 +3222,7 @@ void th_render(fn_mat4 modelViewprojection,fn_mat4 proj,fn_mat4 view,fn_vec2 scr
 
 
 
-        if (alpha_preclamp < 0.05 || (th_getEnemyCount() < 5 && state->level.levelstate.num_enemies_highwater > 1 ))
+        if (alpha_preclamp < 0.05 || (th_getEnemyCount() < 5 && (state->level.levelstate.num_enemies_highwater > 1 || state->level.ls.num_spawners_total > 0) ))
         {
           th_timer_t killtime_seconds = (th_getKillTimer() - th_time())/1000.0;
           killtime_seconds = killtime_seconds > 0.0 ? killtime_seconds : 0.0;
@@ -3930,6 +3932,11 @@ void th_runProgram(th_RendererState* state,fn_RawInput* input,float dt,a_AudioSy
      th_centipedeUpdate(state->level.ls.centipede_super,dt,input);
    }
 
+   if (state->level.ls.centipede_fast != NULL)
+   {
+     th_centipedeUpdate(state->level.ls.centipede_fast,dt,input);
+   }
+
    if (state->level.ls.debugger_centi != NULL)
    {
      th_DebuggerUpdate(state->level.ls.debugger_centi);
@@ -4098,7 +4105,7 @@ void th_runProgram(th_RendererState* state,fn_RawInput* input,float dt,a_AudioSy
      float alpha = (float)enemy_count / (float) state->level.levelstate.num_enemies_highwater ;
      alpha = fn_clamp(alpha,0.001,1.0);
 
-     if (alpha < 0.05 || (th_getEnemyCount() < 5 && state->level.levelstate.num_enemies_highwater > 1 ))
+     if (alpha < 0.05 || (th_getEnemyCount() < 5 && (state->level.levelstate.num_enemies_highwater > 1 || state->level.ls.num_spawners_total > 0 )))
      {
        float killtime = fn_min(5000.0*(float)enemy_count,30000.0);
         th_runKillTimer(killtime);

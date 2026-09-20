@@ -1654,17 +1654,39 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
   fn_vec3 skoffset = fn_createVec3(  -1354.420410, -850.906921, 17.274073);
 
 
-  int tricol_count = 0;
-  th_SpawnsetPair* tricol_spawns = th_spawnSetFind(l->spawnset,l->spawnset_entries,"spawner_ii",&tricol_count);
+  int tricol_count_hard = 0;
+  th_SpawnsetPair* tricol_spawns_hard = th_spawnSetFind(l->spawnset,l->spawnset_entries,"spawner_ii",&tricol_count_hard);
+
+  int tricol_count_easy = 0;
+  th_SpawnsetPair* tricol_spawns_easy = th_spawnSetFind(l->spawnset,l->spawnset_entries,"spawner_ii_fast",&tricol_count_easy);
+
+  //union
+  int tricol_count = tricol_count_hard + tricol_count_easy;
+  th_SpawnsetPair* tricol_spawns = NULL;
+  if (tricol_spawns_easy == NULL && tricol_spawns_hard != NULL)
+  {
+    tricol_spawns = tricol_spawns_hard ;
+  }
+  else if (tricol_spawns_hard == NULL && tricol_spawns_easy != NULL)
+  {
+    tricol_spawns = tricol_spawns_easy;
+  }
+  else
+  {
+    tricol_spawns = tricol_spawns_hard < tricol_spawns_easy ? tricol_spawns_hard : tricol_spawns_easy;
+  }
+
 
   fn_vec3* tricol_positions = th_alloc(alloc,sizeof(fn_vec3)*tricol_count);
   float* tricol_times = th_alloc(alloc,sizeof(float)*tricol_count);
   fn_vec3** tricol_courses = th_alloc(alloc,sizeof(fn_vec3*)*tricol_count);
   int* tricol_courses_count = th_alloc(alloc,sizeof(int)*tricol_count);
+  bool* tricol_fastmode = th_alloc(alloc,sizeof(bool)*tricol_count);
 
   th_markEnemyBirth(tricol_count);
 
   for (int i = 0; i < tricol_count; i++) {
+    tricol_fastmode[i] = false;
     tricol_positions[i] = tricol_spawns[i].position;
     tricol_times[i] = tricol_spawns[i].time;
 
@@ -1680,6 +1702,11 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
     tricol_courses_count[i] = num_tricol_course_spawn;
 
     l->ls.num_spawners_total = l->ls.num_spawners_total + 1;
+
+    if (strcmp(tricol_spawns[i].name,"spawner_ii_fast") == 0)
+    {
+      tricol_fastmode[i] = true;
+    }
   }
 
 
@@ -1769,6 +1796,14 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
  int num_centi_spawns_super = 0;
  th_buildCentipedeCourses(l, "centipedeii", alloc, &centi_courses_super, &num_centi_spawns_super,&centi_spawn_times_super);
 
+ float* centi_spawn_times_fast = NULL;
+ th_CentipedeCourse* centi_courses_fast = NULL;
+ int num_centi_spawns_fast = 0;
+ th_buildCentipedeCourses(l, "centipede_fast", alloc, &centi_courses_fast, &num_centi_spawns_fast,&centi_spawn_times_fast);
+
+
+ int centi_segments_fast = 45;
+ int centi_count_fast = num_centi_spawns_fast*centi_segments_fast;
 
  int centi_segments = 20;
  int centi_count = num_centi_spawns*centi_segments;
@@ -2216,6 +2251,7 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
    centi_config.spawn_speed = 0.5;
    centi_config.turn_rate = 3.14159*0.04;
    centi_config.gem_health = 100;
+   centi_config.retrack_interval = 20000.0;
 
    ls->centipede_super = th_alloc(alloc,sizeof(th_CentipedeGroup));
    th_centipedeInitialize(alloc,ls->centipede_super,centi_count_super,centi_segments_super,centi_count_super/centi_segments_super,centi_spawn_times_super,centi_courses_super,&l->ls,centi_config);
@@ -2291,6 +2327,7 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
   centi_config.spawn_speed = 0.7;
   centi_config.turn_rate = 0.0;
   centi_config.gem_health = 12.0;
+  centi_config.retrack_interval = 20000.0;
 
    ls->centipede = th_alloc(alloc,sizeof(th_CentipedeGroup));
    th_centipedeInitialize(alloc,ls->centipede,centi_count,centi_segments,centi_count/centi_segments,centi_spawn_times,centi_courses,&l->ls,centi_config);
@@ -2358,6 +2395,83 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
 
     centi_legb_brush = th_cacheBrushDefault(wadname,l,"th1/models/centilegs/leg_2.obj",centi_legsa_handles,centi_legsa_matrices,centi_count*2,NULL,  TH_DYNAMC | TH_SHADOWCASTING | TH_NOCULLING | TH_RENDERCOMMAND | TH_NOCENTER ,&centi_leg_b_command,fn_createVec3s(0));
 
+
+
+    /*
+     * CENTIPEDE FAST INITIALIZATION
+     */
+    centi_config.scale = 2.0;
+    centi_config.speed = 2.0;
+    centi_config.spawn_speed = 2.0;
+    centi_config.turn_rate = 0.25;
+    centi_config.gem_health = 12.0;
+    centi_config.retrack_interval = 100.0;
+
+    ls->centipede_fast = th_alloc(alloc,sizeof(th_CentipedeGroup));
+    th_centipedeInitialize(alloc,ls->centipede_fast,centi_count_fast,centi_segments_fast,centi_count_fast/centi_segments_fast,centi_spawn_times_fast,centi_courses_fast,&l->ls,centi_config);
+
+
+    centipede_edict.entities = ls->centipede_fast->entities_gems;
+    centipede_edict.entityCount= &ls->centipede_fast->count;
+    centipede_edict.grid = NULL;//&l.boidgroups[0].grid;
+    centipede_edict.flags = TH_ENEMY;
+    th_registerEntityGroup(centipede_edict);
+
+    //mat_ribbed
+    centipede_handles = th_make_handles_arena(alloc,l->handles[mat_gold],centi_count_fast);
+
+    centipede_matrices = th_make_matrices_arena(alloc,fn_identityMat4(),centi_count_fast);
+
+
+    centipede_command.offset = 0;
+    centipede_command.model_id = 0;
+    centipede_command.matcount = &ls->centipede_fast->count;
+    centipede_command.mats = &ls->centipede_fast->transforms_body;
+    centipede_command.stride = 1;
+
+    //th_BrushTuple segment = th_createBrush(&l,"th1/models/segment3.obj",centipede_handles,centipede_matrices,centi_count,NULL,TH_DYNAMC | TH_SHADOWCASTING ,NULL,fn_createVec3s(0));
+    segment = th_cacheBrush(wadname,l,"th1/models/segment6.obj",centipede_handles,centipede_matrices,centi_count_fast,NULL,TH_DYNAMC | TH_SHADOWCASTING  | TH_RENDERCOMMAND | TH_PRECACHE_TR | TH_PRECACHE_SCALEUV | TH_NOCENTER ,&centipede_command,fn_createVec3s(0),fn_createVec3s(1),fn_createVec2(1.5,1.5),fn_createVec3(0,1,0));
+    // r_scaleMeshUVs(&l->meshes[segment.id],fn_createVec2(1.5,1.5));
+    // r_translateThorMesh(&l->meshes[segment.id],fn_createVec3(0,1,0));
+    ls->centipede_fast->frustum_data = l->culldata;
+    ls->centipede_fast->frustum_offset = segment.culldata_offset;
+
+
+    gem_command.offset = 0;
+    gem_command.model_id = 0;
+    gem_command.matcount = &ls->centipede_fast->count;
+    gem_command.mats = &ls->centipede_fast->transforms_gems;
+    gem_command.stride = 1;
+
+
+    gem_handles = th_make_handles_arena(alloc,l->handles[mat_plasma],centi_count_fast);
+    //th_BrushTuple gem = th_createBrush(&l,"th1/models/gem.obj",gem_handles,centipede_matrices,centi_count,NULL,TH_DYNAMC | TH_SHADOWCASTING ,NULL,fn_createVec3s(0));
+    gem = th_cacheBrush(wadname,l,"th1/models/gem.obj",gem_handles,centipede_matrices,centi_count_fast,NULL,TH_DYNAMC | TH_SHADOWCASTING | TH_RENDERCOMMAND | TH_PRECACHE_SCALEUV,&gem_command,fn_createVec3s(0),fn_createVec3s(1),fn_createVec2(0.5,0.5),fn_createVec3(0,1,0));
+    // r_scaleMeshUVs(&l->meshes[gem.id],fn_createVec2(0.5,0.5));
+    ls->centipede_fast->frustum_offset_gem = gem.culldata_offset;
+
+
+
+    centi_legsa_handles = th_make_handles_arena(alloc,l->handles[mat_scuffcopper],centi_count_fast*2);
+    centi_legsa_matrices = th_make_matrices_arena(alloc,fn_identityMat4(),centi_count_fast*2);
+
+    centi_leg_a_command.offset = 0;
+    centi_leg_a_command.model_id = 0;
+    centi_leg_a_command.matcount = &l->ls.centipede_fast->leg_count;
+    centi_leg_a_command.mats = &l->ls.centipede_fast->transforms_legs_a;
+    centi_leg_a_command.stride = 1;
+
+    centi_lega_brush = th_cacheBrushDefault(wadname,l,"th1/models/centilegs/leg_1.obj",centi_legsa_handles,centi_legsa_matrices,centi_count_fast*2,NULL,  TH_DYNAMC | TH_SHADOWCASTING | TH_NOCULLING | TH_RENDERCOMMAND | TH_NOCENTER ,&centi_leg_a_command,fn_createVec3s(0));
+
+
+
+    centi_leg_b_command.offset = 0;
+    centi_leg_b_command.model_id = 0;
+    centi_leg_b_command.matcount = &l->ls.centipede_fast->leg_count;
+    centi_leg_b_command.mats = &l->ls.centipede_fast->transforms_legs_b;
+    centi_leg_b_command.stride = 1;
+
+    centi_legb_brush = th_cacheBrushDefault(wadname,l,"th1/models/centilegs/leg_2.obj",centi_legsa_handles,centi_legsa_matrices,centi_count_fast*2,NULL,  TH_DYNAMC | TH_SHADOWCASTING | TH_NOCULLING | TH_RENDERCOMMAND | TH_NOCENTER ,&centi_leg_b_command,fn_createVec3s(0));
 
    /*
    *SKULL BOID INITIALIZATION
@@ -3173,7 +3287,7 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
 
 
 
-    th_tricolumnInitialize(alloc,l->ls.tricolumn,tricol_count,tricol_positions,tricol_times,&l->ls);
+    th_tricolumnInitialize(alloc,l->ls.tricolumn,tricol_count,tricol_positions,tricol_times,tricol_fastmode,&l->ls);
 
     for (int i = 0; i < tricol_count; i++) {
       th_tricolumnSetCourse(l->ls.tricolumn,i,tricol_courses[i],tricol_courses_count[i]);
@@ -3230,6 +3344,17 @@ void th_levelLoadDynamicObjects(th_LevelDescriptor* l,const char* wadname)
 
 
     fn_vec2* tricol_col_handles = th_make_handles_arena(alloc,l->handles[mat_chrome],tricol_count*colunn_per_count);
+
+    for (int i = 0 ; i < tricol_count; i++ )
+    {
+      if (tricol_fastmode[i])
+      {
+        for (int j = 0 ; j < colunn_per_count;j++ )
+        {
+          tricol_col_handles[i*colunn_per_count + j] = l->handles[mat_gold];
+        }
+      }
+    }
     fn_mat4* tricol_col_matrices = th_make_matrices_arena(alloc,fn_identityMat4(),tricol_count*colunn_per_count);
 
     th_RenderCommand tricol_col_command;
