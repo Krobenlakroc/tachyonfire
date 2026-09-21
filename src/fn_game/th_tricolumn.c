@@ -338,7 +338,7 @@ static void th_triColumnPose(th_MotionState mstate,th_TricolumnGroup* c,int i,fl
 
 
     int rnd_temp = 0;
-    if (th_time() - c->data[i].aggrotimer < 3000 &&  th_time() - c->data[i].aggrotimer > 200 )
+    if (th_time() - c->data[i].aggrotimer < 3000 &&  th_time() - c->data[i].aggrotimer > 200 && th_time() > c->data[i].lightning_cooldown_timer + 7000.0 )
     {
         fn_vec3 offset_eye = fn_rotatePointQuat(fn_createVec3(0,0,eye_offset_amt),fn_multquat(c->data[i].orientation_eyedir,c->data[i].orientation));
 
@@ -368,8 +368,20 @@ static void th_triColumnPose(th_MotionState mstate,th_TricolumnGroup* c,int i,fl
 
                 th_PlayerObject* po = c->levelstate->player;
                 th_decrementPlayerHealth(po,2);
-                th_decrementPlayerGem(po,2);
+                th_decrementPlayerGem(po,1);
                 c->data[i].lightning_hit_timer = th_time() + 50;
+                c->data[i].hit_counter = c->data[i].hit_counter + 1;
+
+                if (c->data[i].hit_counter % 10 == 0)
+                {
+                    c->data[i].aggrotimer = th_time() - 3001.0;
+
+                    if (c->fastmode[i])
+                    {
+                        c->data[i].lightning_cooldown_timer = th_time();
+                    }
+
+                }
             }
 
         }
@@ -712,7 +724,8 @@ void th_tricolumnInitialize(th_Allocator* alloc,th_TricolumnGroup* c,int count,f
         c->data[i].old_body = fn_identityMat4();
         c->data[i].old_eye = fn_identityMat4();
         c->data[i].lightning_hit_timer = -1;
-
+        c->data[i].hit_counter = 0;
+        c->data[i].lightning_cooldown_timer = -10000.0;
 
 
 
@@ -1539,9 +1552,10 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
 
             if (c->fastmode[i] && fn_distance2(c->data[i].position,c->levelstate->player_e.aabb.position) < 1500*1500 )
             {
-                if (c->data[i].state == TRICOL_EXPLORE)
+                if (c->data[i].state == TRICOL_EXPLORE && th_time() > c->data[i].lightning_cooldown_timer + 7000.0)
                 {
                     c->data[i].aggrotimer = th_time() - 250;
+                    //c->data[i].hit_counter = 0;
                     th_playSoundIfNotPlaying(&c->data[i].lazer,c->data[i].position,sound_laser_tricol,1.0 );
                 }
             }
@@ -1627,6 +1641,7 @@ void th_tricolumnUpdate(th_TricolumnGroup* c,float dt)
                                 if (c->data[i].state == TRICOL_EXPLORE && !c->fastmode[i])
                                 {
                                     c->data[i].aggrotimer = th_time();
+                                    c->data[i].hit_counter = 0;
                                     th_playSoundIfNotPlaying(&c->data[i].lazer,c->data[i].position,sound_laser_tricol,1.0 );
                                 }
 

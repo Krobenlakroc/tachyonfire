@@ -93,6 +93,8 @@ typedef struct
 
     th_timer_t aggrotimer;
     th_timer_t lightning_hit_timer;
+    int hit_counter; // make it so that the player doesnt get BLASTED for a long time
+    th_timer_t lightning_cooldown_timer;
 
     th_timer_t spawntimer;
     th_timer_t spawn_heartbeat;
